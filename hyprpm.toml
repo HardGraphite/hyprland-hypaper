@@ -1,0 +1,12 @@
+[repository]
+name = "hyprland-hypaper"
+authors = ["HardGraphite"]
+
+[HyPaper]
+description = "A scrollable tilling layout."
+authors = ["HardGraphite"]
+output = "build/hypaper.so"
+build = [
+    "make build/hypaper.so",
+    "strip build/hypaper.so"
+]
