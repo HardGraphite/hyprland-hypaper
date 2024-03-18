@@ -1,5 +1,7 @@
 #include "layout.h"
 
+#include <cassert>
+
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/Window.hpp>
 
@@ -33,20 +35,24 @@ void Layout::onDisable() {
 bool Layout::isWindowTiled(CWindow *win) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 
-    auto wb = this->get_workbench(win->m_iWorkspaceID);
-    return wb ? wb->find_window(win) : false;
+    if (auto wb = this->get_workbench(win->m_iWorkspaceID); wb)
+        return wb ? wb->find_window(win) : false;
+    return false;
 }
 
 void Layout::onWindowCreatedTiling(CWindow *win, eDirection) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 
-    this->get_or_new_workbench(win->m_iWorkspaceID).add_window(win);
+    if (const auto wid = win->m_iWorkspaceID; wid >= 0)
+        this->get_or_new_workbench(wid).add_window(win);
 }
 
 void Layout::onWindowRemovedTiling(CWindow *win) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 
     auto wb = this->get_workbench(win->m_iWorkspaceID);
+    if (!wb)
+        return;
     if (auto fwr = wb->find_window(win); fwr) {
         wb->del_window(fwr.column, fwr.window);
         return;
@@ -303,6 +309,8 @@ Workbench *Layout::get_workbench(int workspace_id) const {
 }
 
 Workbench &Layout::get_or_new_workbench(int workspace_id) {
+    assert(workspace_id >= 0);
+
     if (std::size_t(workspace_id) <=this->workspaces.size()) {
         auto &w = this->workspaces[workspace_id];
         if (!w)
