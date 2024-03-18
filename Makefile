@@ -24,6 +24,10 @@ OUT = $(BINDIR)/$(TARGET)
 
 all: $(OUT)
 
+.PHONY: debug
+debug:
+	make DEBUG=1
+
 $(BINDIR):
 	[ -d "$@" ] || mkdir "$@"
 
