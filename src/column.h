@@ -3,8 +3,7 @@
 #include <cstddef>
 #include <vector>
 
-#include <hyprland/src/Window.hpp>
-
+class CMonitor;
 class CWindow;
 
 namespace hypaper {

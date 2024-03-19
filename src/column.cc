@@ -5,12 +5,17 @@
 
 #include <cassert>
 #include <cmath>
+#include <tuple>
 #include <utility>
 
 #include "config.h"
 #include "logging.h"
 
 using namespace hypaper;
+
+static CMonitor &get_window_monitor(CWindow *win) {
+    return *g_pCompositor->getMonitorFromID(win->m_iMonitorID);
+}
 
 Column::Column(double h_pos, CWindow *win):
     width(0), h_position(h_pos),
@@ -52,7 +57,7 @@ void Column::add_window(CWindow *win) {
         new (&this->window_list) decltype(this->window_list){old_win, win};
         this->focused_window = 1;
     }
-    win->m_vPosition.x = this->h_position;
+    this->update_window_hposition();
     this->update_window_vposition_and_size();
 }
 
@@ -179,7 +184,7 @@ double Column::get_actual_width() const noexcept {
 
     if (this->is_empty())
         return this->width;
-    const auto &mon = *g_pCompositor->getMonitorFromID(this->get_window(0)->m_iMonitorID);
+    const auto &mon = get_window_monitor(this->get_window(0));
     return mon.vecSize.x * this->width;
 }
 
@@ -192,90 +197,102 @@ void Column::set_hposition(double x) {
     this->update_window_hposition();
 }
 
+static void set_window_hposition(CWindow &win, double x) {
+
+    win.m_vPosition.x = x;
+
+    const auto rsv = win.getFullWindowReservedArea();
+    win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
+
+    hypaper_log(
+        "Window@{}: {},{};{},{}",
+        static_cast<const void *>(&win),
+        win.m_vPosition, win.m_vSize,
+        win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
+    );
+}
+
+static void set_window_vposition_and_size(CWindow &win, double y, double w, double h) {
+    win.m_vPosition.y = y;
+    win.m_vSize.x     = w;
+    win.m_vSize.y     = h;
+
+    const auto rsv = win.getFullWindowReservedArea();
+    win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
+    win.m_vRealSize     = win.m_vSize - (rsv.topLeft + rsv.bottomRight);
+
+    hypaper_log(
+        "Window@{}: {},{};{},{}",
+        static_cast<const void *>(&win),
+        win.m_vPosition, win.m_vSize,
+        win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
+    );
+}
+
+static double calc_window_width(const CMonitor &mon, double col_wid) {
+    assert(col_wid > 0);
+    if (col_wid <= 1.0)
+        col_wid *= mon.vecSize.x;
+    const double gaps_in_x2 = conf::gaps_in() * 2;
+    return col_wid > gaps_in_x2 ? col_wid - gaps_in_x2 : col_wid;
+}
+
+static double calc_window_hposition(const CMonitor &mon, double col_x, double col_wid) {
+    assert(col_wid > 0);
+    if (col_wid <= 1.0)
+        col_wid *= mon.vecSize.x;
+    const double gaps_in = conf::gaps_in();
+    return col_wid > gaps_in * 2 ? col_x + gaps_in : col_x;
+}
+
+static std::tuple<double, double, double>
+calc_window_vposition_and_height_and_gap(const CMonitor &mon, std::size_t win_count) {
+    assert(win_count);
+    double col_y = mon.vecPosition.y, col_h = mon.vecSize.y;
+    const double gaps_in_x2 = conf::gaps_in() * 2, gaps_out = conf::gaps_out();
+    if (col_h > gaps_out * 2 + gaps_in_x2 * (win_count - 1))
+        return { col_y + gaps_out, (col_h - gaps_out * 2 + gaps_in_x2) / win_count - gaps_in_x2, gaps_in_x2 };
+    return { col_y, col_h / win_count, 0 };
+}
+
 void Column::update_window_hposition() const {
     if (this->has_window_list) {
-        for (const auto &wp : this->window_list) {
-            auto &win = *wp;
-            const auto rsv = win.getFullWindowReservedArea();
-            win.m_vPosition.x = this->h_position;
-            win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
-            hypaper_log(
-                "Column@{}: {}(): win {} => {},{};{},{}",
-                static_cast<const void *>(this), __func__, static_cast<const void *>(&win),
-                win.m_vPosition, win.m_vSize, win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
-            );
-        }
+        if (this->window_list.empty())
+            return;
+        auto &mon = get_window_monitor(this->window_list.front());
+        const auto win_x = calc_window_hposition(mon, this->h_position, this->width);
+        for (const auto &wp : this->window_list)
+            set_window_hposition(*wp, win_x);
     } else {
-        if (this->window) {
-            auto &win = *this->window;
-            const auto rsv = win.getFullWindowReservedArea();
-            win.m_vPosition.x = this->h_position;
-            win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
-            hypaper_log(
-                "Column@{}: {}(): win {} => {},{};{},{}",
-                static_cast<const void *>(this), __func__, static_cast<const void *>(&win),
-                win.m_vPosition, win.m_vSize, win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
-            );
-        }
+        if (!this->window)
+            return;
+        auto &win = *this->window;
+        auto &mon = get_window_monitor(&win);
+        const auto win_x = calc_window_hposition(mon, this->h_position, this->width);
+        set_window_hposition(*this->window, win_x);
     }
 }
 
 void Column::update_window_vposition_and_size() const {
-    double win_width = this->width;
-    assert(win_width > 0.0);
-
     if (this->has_window_list) {
         if (this->window_list.empty())
             return;
-
-        const auto &mon =
-            *g_pCompositor->getMonitorFromID(this->window_list.front()->m_iMonitorID);
-        auto win_y = mon.vecPosition.y;
-        const auto win_height = std::round(mon.vecSize.y / this->window_list.size());
-        if (win_width <= 1.0)
-            win_width *= mon.vecSize.x;
-
+        const auto &mon = get_window_monitor(this->window_list.front());
+        const auto win_width = calc_window_width(mon, this->width);
+        auto [win_y, win_height, win_gap] =
+                calc_window_vposition_and_height_and_gap(mon, this->window_list.size());
         for (const auto &wp : this->window_list) {
-            auto &win = *wp;
-            const auto rsv = win.getFullWindowReservedArea();
-
-            win.m_vPosition.y = win_y;
-            win.m_vSize.x     = win_width;
-            win.m_vSize.y     = win_height;
-
-            win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
-            win.m_vRealSize     = win.m_vSize - (rsv.topLeft + rsv.bottomRight);
-
-            win_y += win_height;
-
-            hypaper_log(
-                "Column@{}: {}(): win {} => {},{};{},{}",
-                static_cast<const void *>(this), __func__, static_cast<const void *>(&win),
-                win.m_vPosition, win.m_vSize, win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
-            );
+            set_window_vposition_and_size(*wp, win_y, win_width, win_height);
+            win_y += win_height + win_gap;
         }
     } else {
         if (!this->window)
             return;
-
         auto &win = *this->window;
-        const auto &mon = *g_pCompositor->getMonitorFromID(win.m_iMonitorID);
-        const auto rsv = win.getFullWindowReservedArea();
-
-        if (win_width <= 1.0)
-            win_width *= mon.vecSize.x;
-
-        win.m_vPosition.y = mon.vecPosition.y;
-        win.m_vSize.x     = win_width;
-        win.m_vSize.y     = mon.vecSize.y;
-
-        win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
-        win.m_vRealSize     = win.m_vSize - (rsv.topLeft + rsv.bottomRight);
-
-        hypaper_log(
-            "Column@{}: {}(): win {} => {},{};{},{}",
-            static_cast<const void *>(this), __func__, static_cast<const void *>(&win),
-            win.m_vPosition, win.m_vSize, win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
-        );
+        const auto &mon = get_window_monitor(&win);
+        const auto win_width = calc_window_width(mon, this->width);
+        const auto [win_y, win_height, win_gap] =
+            calc_window_vposition_and_height_and_gap(mon, 1);
+        set_window_vposition_and_size(win, win_y, win_width, win_height);
     }
 }
