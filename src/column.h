@@ -30,10 +30,15 @@ public:
     void focus_window_up();
     void focus_window_down();
     std::size_t find_window(CWindow *win) const;
+    std::size_t count_windows() const;
 
     bool is_empty() const noexcept {
         return this->has_window_list ?
             this->window_list.empty() : !this->window;
+    }
+
+    std::size_t get_focused_window_index() const noexcept {
+        return this->focused_window;
     }
 
     void set_width(double w);

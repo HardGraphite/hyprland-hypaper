@@ -14,6 +14,8 @@ class Workbench;
 /// The paper layout.
 class Layout final : public IHyprLayout {
 public:
+    enum class ScrollArg { AUTO, CENTER, ALIGN_L, ALIGN_R };
+
     static const std::string name;
 
     virtual ~Layout() override;
@@ -38,12 +40,10 @@ public:
     virtual CWindow *getNextWindowCandidate(CWindow *win) override;
     virtual void replaceWindowDataWith(CWindow *win_from, CWindow *win_to) override;
 
-private:
-    std::array<std::unique_ptr<Workbench>, 10> workspaces;
-    std::vector<std::unique_ptr<Workbench>> extra_workspaces;
-
-    Workbench *get_workbench(int workspace_id) const;
-    Workbench &get_or_new_workbench(int workspace_id);
+    void cmd_column_width(double w);
+    void cmd_absorb_window();
+    void cmd_expel_window();
+    void cmd_scroll(ScrollArg arg);
 
     template<typename F> requires (std::is_invocable_r_v<bool, F, Workbench &>)
     bool foreach_workspace(F &&fn) {
@@ -59,6 +59,14 @@ private:
         }
         return true;
     }
+
+    Workbench *get_workbench(int workspace_id) const;
+
+private:
+    std::array<std::unique_ptr<Workbench>, 10> workspaces;
+    std::vector<std::unique_ptr<Workbench>> extra_workspaces;
+
+    Workbench &get_or_new_workbench(int workspace_id);
 };
 
 }

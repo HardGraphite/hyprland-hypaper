@@ -35,8 +35,14 @@ void Column::add_window(CWindow *win) {
     hypaper_log("Column@{}: add window {}", static_cast<void *>(this), static_cast<void *>(win));
 
     if (this->has_window_list) {
-        this->focused_window = this->window_list.size();
-        this->window_list.emplace_back(win);
+        if (this->window_list.empty()) {
+            this->focused_window = 0;
+            this->window_list.emplace_back(win);
+        } else {
+            this->focused_window++;
+            const auto insert_iter = this->window_list.begin() + this->focused_window;
+            this->window_list.emplace(insert_iter, win);
+        }
     } else if (!this->window) {
         this->window = win;
         this->focused_window = 0;
@@ -59,7 +65,7 @@ CWindow *Column::del_window(std::size_t index) {
         const auto win_iter = this->window_list.begin() + index;
         deleted_win = *win_iter;
         this->window_list.erase(win_iter);
-        this->focused_window = this->window_list.size() - 1;
+        this->focused_window = this->window_list.empty() ? NPOS : index ? index - 1 : 0;
         if (!this->window_list.empty())
             this->update_window_vposition_and_size();
     } else {
@@ -146,6 +152,14 @@ std::size_t Column::find_window(CWindow *win) const {
             return 0;
     }
     return Column::NPOS;
+}
+
+std::size_t Column::count_windows() const {
+    if (this->has_window_list) {
+        return this->window_list.size();
+    } else {
+        return this->window ? 1 : 0;
+    }
 }
 
 void Column::set_width(double w) {

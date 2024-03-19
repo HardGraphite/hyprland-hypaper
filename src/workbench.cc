@@ -28,24 +28,28 @@ void Workbench::add_window(CWindow *win) {
     auto new_column = new Column(new_col_x, win);
     this->columns.emplace(this->columns.begin() + new_col_index, new_column);
     this->focused_column = new_col_index;
-    if (const auto next_col_index = new_col_index + 1; next_col_index < this->columns.size())
-        this->update_column_position(new_col_x + new_column->get_actual_width(), next_col_index, NPOS);
+    this->update_column_position(new_col_x + new_column->get_actual_width(), new_col_index + 1, NPOS);
     this->scroll_to_fit_focus();
 }
 
-void Workbench::del_window(std::size_t col_index, std::size_t win_index) {
+CWindow *Workbench::del_window(std::size_t col_index, std::size_t win_index) {
     hypaper_log("Workbench#{}: del window #{}:{}", this->workspace_id, col_index, win_index);
 
     if (col_index >= this->columns.size())
-        return;
+        return nullptr;
     auto &column = *this->columns[col_index].get();
-    const auto win_x = column.del_window(win_index)->m_vPosition.x;
-    if (column.is_empty())
-        this->columns.erase(this->columns.begin() + col_index);
-    this->focused_column = this->columns.empty() ? NPOS : col_index == 0 ? 0 : col_index - 1;
-    if (col_index < this->columns.size())
-        this->update_column_position(win_x, col_index, NPOS);
-    this->scroll_to_fit_focus();
+    CWindow *win = column.del_window(win_index);
+    if (!win)
+        return nullptr;
+    if (!column.is_empty())
+        return win;
+    this->columns.erase(this->columns.begin() + col_index);
+    this->update_column_position(win->m_vPosition.x, col_index, NPOS);
+    if (this->focused_column >= win_index) {
+        this->focused_column = this->columns.empty() ? NPOS : col_index == 0 ? 0 : col_index - 1;
+        this->scroll_to_fit_focus();
+    }
+    return win;
 }
 
 void Workbench::focus_column(std::size_t index) {
@@ -109,6 +113,13 @@ Workbench::FindWinResult Workbench::find_window(CWindow *win) const {
     return { Workbench::NPOS, Column::NPOS };
 }
 
+void Workbench::on_column_width_changed(std::size_t index) {
+    if (index + 1 >= this->columns.size())
+        return;
+    auto &col = *this->columns[index].get();
+    this->update_column_position(col.get_hposition() + col.get_actual_width(), index + 1, NPOS);
+}
+
 double Workbench::monitor_hposition() const {
     const auto monitor_id = g_pCompositor->getWorkspaceByID(this->workspace_id)->m_iMonitorID;
     return g_pCompositor->getMonitorFromID(monitor_id)->vecPosition.x;
@@ -149,13 +160,15 @@ void Workbench::scroll_to_fit_focus(bool center) {
 void Workbench::update_column_position(double column_x, std::size_t index_start, std::size_t count) {
     if (index_start >= this->columns.size())
         return;
-    if (index_start + count > this->columns.size())
+    if (count == NPOS)
+        count = this->columns.size() - index_start;
+    else if (index_start + count > this->columns.size())
         count = this->columns.size() - index_start;
     if (!count)
         return;
 
     for (std::size_t i = 0; i < count; i++) {
-        auto &column = *this->columns[i].get();
+        auto &column = *this->columns[index_start + i].get();
         column.set_hposition(column_x);
         column_x += column.get_actual_width();
     }

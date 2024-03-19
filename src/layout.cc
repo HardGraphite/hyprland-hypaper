@@ -291,6 +291,83 @@ CWindow *Layout::getNextWindowCandidate(CWindow *win) {
 }
 
 void Layout::replaceWindowDataWith(CWindow *win_from, CWindow *win_to) {
+    hypaper_log("Layout::{}()", __func__);
+}
+
+static int get_active_workspace() noexcept {
+    return g_pCompositor->m_pLastMonitor->activeWorkspace;
+}
+
+void Layout::cmd_column_width(double w) {
+    hypaper_log("Layout::{}({})", __func__, w);
+
+    auto wbp = this->get_workbench(get_active_workspace());
+    if (!wbp || wbp->is_empty())
+        return;
+    auto &wb = *wbp;
+
+    wb.get_focused_column().set_width(w);
+    wb.on_column_width_changed(wb.get_focused_column_index());
+    wb.scroll();
+}
+
+void Layout::cmd_absorb_window() {
+    hypaper_log("Layout::{}()", __func__);
+
+    auto wbp = this->get_workbench(get_active_workspace());
+    if (!wbp || wbp->get_focused_column_index() + 1 >= wbp->count_columns())
+        return;
+    auto &wb = *wbp;
+
+    CWindow *win;
+    if (auto &col = wb.get_column(wb.get_focused_column_index() + 1); col.is_empty())
+        return;
+    else if (col.count_windows() == 1)
+        win = wb.del_window(wb.get_focused_column_index() + 1, 0);
+    else
+        win = col.del_window(col.get_focused_window_index());
+    assert(!wb.is_empty());
+    if (auto &col = wb.get_focused_column(); col.is_empty()) {
+        col.add_window(win);
+        g_pCompositor->focusWindow(win);
+    } else {
+        const auto old_fw = col.get_focused_window_index();
+        col.add_window(win);
+        col.focus_window(old_fw);
+    }
+}
+
+void Layout::cmd_expel_window() {
+    hypaper_log("Layout::{}()", __func__);
+
+    auto wbp = this->get_workbench(get_active_workspace());
+    if (!wbp || wbp->is_empty())
+        return;
+    auto &wb = *wbp;
+
+    if (auto &col = wb.get_focused_column(); col.count_windows() >= 2)
+        wb.add_window(col.del_window(col.get_focused_window_index()));
+}
+
+void Layout::cmd_scroll(ScrollArg arg) {
+    hypaper_log("Layout::{}({})", __func__, int(arg));
+
+    auto wbp = this->get_workbench(get_active_workspace());
+    if (!wbp || wbp->is_empty())
+        return;
+    auto &wb = *wbp;
+
+    switch (arg) {
+        using enum ScrollArg;
+    case AUTO:
+        wb.scroll();
+        break;
+    case CENTER:
+        wb.scroll(true);
+        break;
+    default:
+        break;
+    }
 }
 
 Workbench *Layout::get_workbench(int workspace_id) const {

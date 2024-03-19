@@ -24,7 +24,7 @@ public:
     explicit Workbench(int workspace_id);
 
     void add_window(CWindow *win);
-    void del_window(std::size_t col_index, std::size_t win_index);
+    CWindow *del_window(std::size_t col_index, std::size_t win_index);
     FindWinResult find_window(CWindow *win) const;
     void focus_column(std::size_t index);
     void focus_column_left();
@@ -52,6 +52,20 @@ public:
     Column &get_focused_column() const noexcept {
         return this->get_column(this->focused_column);
     }
+
+    std::size_t get_focused_column_index() const noexcept {
+        return this->focused_column;
+    }
+
+    std::size_t count_columns() const noexcept {
+        return this->columns.size();
+    }
+
+    void scroll(bool center = false) {
+        this->scroll_to_fit_focus(center);
+    }
+
+    void on_column_width_changed(std::size_t index);
 
 private:
     std::vector<std::unique_ptr<Column>> columns;
