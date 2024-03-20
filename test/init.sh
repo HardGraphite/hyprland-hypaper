@@ -5,6 +5,7 @@ make -C "$HYPAPER_PROJECT_DIR" plugin-load
 make -C "$HYPAPER_PROJECT_DIR" plugin-layout
 
 commands='
+keyword plugin:hypaper:column_width 0.8 ;
 keyword bind ALT,minus,hypaper:column_width,0.66 ;
 keyword bind "ALT SHIFT,minus,hypaper:column_width,0.5" ;
 keyword bind ALT,equal,hypaper:column_width,1.0 ;

@@ -211,7 +211,7 @@ static void set_window_hposition(CWindow &win, double x, Vector2D padding) {
         "Window@{}: {},{};{},{}",
         static_cast<const void *>(&win),
         win.m_vPosition, win.m_vSize,
-        win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
+        win.m_vRealPosition.goal(), win.m_vRealSize.goal()
     );
 }
 
@@ -228,7 +228,7 @@ static void set_window_vposition_and_size(CWindow &win, double y, double w, doub
         "Window@{}: {},{};{},{}",
         static_cast<const void *>(&win),
         win.m_vPosition, win.m_vSize,
-        win.m_vRealPosition.goalv(), win.m_vRealSize.goalv()
+        win.m_vRealPosition.goal(), win.m_vRealSize.goal()
     );
 }
 

@@ -129,10 +129,10 @@ void Layout::fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool
         }
     } else {
         if (win->m_bIsFloating) {
-            win->m_vLastFloatingSize     = win->m_vRealSize.goalv();
-            win->m_vLastFloatingPosition = win->m_vRealPosition.goalv();
-            win->m_vPosition             = win->m_vRealPosition.goalv();
-            win->m_vSize                 = win->m_vRealSize.goalv();
+            win->m_vLastFloatingSize     = win->m_vRealSize.goal();
+            win->m_vLastFloatingPosition = win->m_vRealPosition.goal();
+            win->m_vPosition             = win->m_vRealPosition.goal();
+            win->m_vSize                 = win->m_vRealSize.goal();
         }
 
         workspace->m_efFullscreenMode = mode;
@@ -154,7 +154,7 @@ void Layout::fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool
     }
 
     g_pCompositor->updateWindowAnimatedDecorationValues(win);
-    g_pXWaylandManager->setWindowSize(win, win->m_vRealSize.goalv());
+    g_pXWaylandManager->setWindowSize(win, win->m_vRealSize.goal());
     g_pCompositor->changeWindowZOrder(win, true);
     this->recalculateMonitor(monitor->ID);
 }
