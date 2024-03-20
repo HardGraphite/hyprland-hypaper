@@ -46,20 +46,7 @@ public:
     void cmd_scroll(ScrollArg arg);
 
     template<typename F> requires (std::is_invocable_r_v<bool, F, Workbench &>)
-    bool foreach_workspace(F &&fn) {
-        for (auto &&w : this->workspaces) {
-            if (w) {
-                if (!fn(*w.get()))
-                    return false;
-            }
-        }
-        for (auto &&w : this->extra_workspaces) {
-            if (!fn(*w.get()))
-                return false;
-        }
-        return true;
-    }
-
+    bool foreach_workspace(F &&fn);
     Workbench *get_workbench(int workspace_id) const;
 
 private:
@@ -68,5 +55,20 @@ private:
 
     Workbench &get_or_new_workbench(int workspace_id);
 };
+
+template<typename F> requires (std::is_invocable_r_v<bool, F, Workbench &>)
+inline bool Layout::foreach_workspace(F &&fn) {
+    for (auto &&w : this->workspaces) {
+        if (w) {
+            if (!fn(*w.get()))
+                return false;
+        }
+    }
+    for (auto &&w : this->extra_workspaces) {
+        if (!fn(*w.get()))
+            return false;
+    }
+    return true;
+}
 
 }

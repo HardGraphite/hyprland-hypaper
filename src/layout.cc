@@ -85,92 +85,14 @@ void Layout::recalculateMonitor(const int &monitor_id) {
     hypaper_log("Layout::{}({})", __func__, monitor_id);
 
     const auto monitor = g_pCompositor->getMonitorFromID(monitor_id);
-    const auto workspace = g_pCompositor->getWorkspaceByID(monitor->activeWorkspace);
-
-    g_pHyprRenderer->damageMonitor(monitor);
-
-#if 0
-    if (monitor->specialWorkspaceID) {
-        const auto special_ws = g_pCompositor->getWorkspaceByID(monitor->specialWorkspaceID);
-
-        if (special_ws->m_bHasFullscreenWindow) {
-            const auto fullscreen_window =
-                g_pCompositor->getFullscreenWindowOnWorkspace(special_ws->m_iID);
-
-            if (special_ws->m_efFullscreenMode == FULLSCREEN_FULL) {
-                fullscreen_window->m_vRealPosition = monitor->vecPosition;
-                fullscreen_window->m_vRealSize     = monitor->vecSize;
-            } else if (special_ws->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
-                SDwindleNodeData fakeNode;
-                fakeNode.pWindow     = fullscreen_window;
-                fakeNode.box         = {
-                    monitor->vecPosition + monitor->vecReservedTopLeft,
-                    monitor->vecSize - monitor->vecReservedTopLeft - monitor->vecReservedBottomRight,
-                };
-                fakeNode.workspaceID = special_ws->m_iID;
-                fullscreen_window->m_vPosition        = fakeNode.box.pos();
-                fullscreen_window->m_vSize            = fakeNode.box.size();
-                fakeNode.ignoreFullscreenChecks = true;
-
-                applyNodeDataToWindow(&fakeNode);
-            }
-        }
-
-        const auto top_node = getMasterNodeOnWorkspace(monitor->specialWorkspaceID);
-
-        if (top_node && monitor) {
-            top_node->box = {
-                monitor->vecPosition + monitor->vecReservedTopLeft,
-                monitor->vecSize - monitor->vecReservedTopLeft - monitor->vecReservedBottomRight,
-            };
-            top_node->recalcSizePosRecursive();
-        }
-    }
-
-    if (workspace->m_bHasFullscreenWindow) {
-        // massive hack from the fullscreen func
-        const auto fullscreen_window = g_pCompositor->getFullscreenWindowOnWorkspace(workspace->m_iID);
-
-        if (workspace->m_efFullscreenMode == FULLSCREEN_FULL) {
-            fullscreen_window->m_vRealPosition = monitor->vecPosition;
-            fullscreen_window->m_vRealSize     = monitor->vecSize;
-        } else if (workspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
-            SDwindleNodeData fakeNode;
-            fakeNode.pWindow         = fullscreen_window;
-            fakeNode.box             = {
-                monitor->vecPosition + monitor->vecReservedTopLeft,
-                monitor->vecSize - monitor->vecReservedTopLeft - monitor->vecReservedBottomRight,
-            };
-            fakeNode.workspaceID     = workspace->m_iID;
-            fullscreen_window->m_vPosition = fakeNode.box.pos();
-            fullscreen_window->m_vSize     = fakeNode.box.size();
-            fakeNode.ignoreFullscreenChecks = true;
-
-            applyNodeDataToWindow(&fakeNode);
-        }
-
-        return;
-    }
-
-    const auto top_node = getMasterNodeOnWorkspace(monitor->activeWorkspace);
-
-    if (top_node && monitor) {
-        top_node->box = {
-            monitor->vecPosition + monitor->vecReservedTopLeft,
-            monitor->vecSize - monitor->vecReservedTopLeft - monitor->vecReservedBottomRight,
-        };
-        top_node->recalcSizePosRecursive();
-    }
-
-#endif
-
+    g_pHyprRenderer->damageMonitor(monitor); // ??
 }
 
-void Layout::recalculateWindow(CWindow *win) {
+void Layout::recalculateWindow([[maybe_unused]] CWindow *win) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 }
 
-void Layout::resizeActiveWindow(const Vector2D &delta, eRectCorner corner, CWindow *win) {
+void Layout::resizeActiveWindow(const Vector2D &, eRectCorner, CWindow *) {
     hypaper_log("Layout::{}()", __func__);
 }
 
@@ -243,7 +165,7 @@ std::any Layout::layoutMessage(SLayoutMessageHeader, std::string) {
     return ""s;
 }
 
-SWindowRenderLayoutHints Layout::requestRenderHints(CWindow *win) {
+SWindowRenderLayoutHints Layout::requestRenderHints(CWindow *) {
     hypaper_log("Layout::{}()", __func__);
 
     return { };
@@ -253,11 +175,11 @@ void Layout::switchWindows(CWindow *, CWindow *) {
     hypaper_log("Layout::{}()", __func__);
 }
 
-void Layout::moveWindowTo(CWindow *win, const std::string &direction) {
+void Layout::moveWindowTo(CWindow *, const std::string &) {
     hypaper_log("Layout::{}()", __func__);
 }
 
-void Layout::alterSplitRatio(CWindow *win, float ratio, bool exact) {
+void Layout::alterSplitRatio(CWindow *, float, bool) {
     hypaper_log("Layout::{}()", __func__);
 }
 
@@ -281,7 +203,7 @@ CWindow *Layout::getNextWindowCandidate(CWindow *win) {
     return nullptr;
 }
 
-void Layout::replaceWindowDataWith(CWindow *win_from, CWindow *win_to) {
+void Layout::replaceWindowDataWith(CWindow *, CWindow *) {
     hypaper_log("Layout::{}()", __func__);
 }
 

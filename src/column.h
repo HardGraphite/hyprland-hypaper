@@ -22,6 +22,7 @@ public:
     CWindow *del_window(std::size_t index);
     CWindow *get_window(std::size_t index) const;
     CWindow *get_focused_window() const;
+    std::size_t get_focused_window_index() const noexcept;
     void swap_windows(std::size_t index1, std::size_t index2);
     void move_window_up(std::size_t index);
     void move_window_down(std::size_t index);
@@ -30,26 +31,13 @@ public:
     void focus_window_down();
     std::size_t find_window(CWindow *win) const;
     std::size_t count_windows() const;
-
-    bool is_empty() const noexcept {
-        return this->has_window_list ?
-            this->window_list.empty() : !this->window;
-    }
-
-    std::size_t get_focused_window_index() const noexcept {
-        return this->focused_window;
-    }
-
+    bool is_empty() const noexcept;
     void set_width(double w);
     double get_width() const noexcept { return this->width; }
     double get_actual_width() const noexcept;
     void set_hposition(double x);
     double get_hposition() const noexcept { return this->h_position; }
-
-    void _apply_window_data() const {
-        this->update_window_hposition();
-        this->update_window_vposition_and_size();
-    }
+    void _apply_window_data() const;
 
 private:
     double width;
@@ -64,5 +52,19 @@ private:
     void update_window_hposition() const;
     void update_window_vposition_and_size() const;
 };
+
+inline bool Column::is_empty() const noexcept {
+    return this->has_window_list ?
+        this->window_list.empty() : !this->window;
+}
+
+inline std::size_t Column::get_focused_window_index() const noexcept {
+    return this->focused_window;
+}
+
+inline void Column::_apply_window_data() const {
+    this->update_window_hposition();
+    this->update_window_vposition_and_size();
+}
 
 }
