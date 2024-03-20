@@ -2,9 +2,11 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/Window.hpp>
+#include <hyprland/src/helpers/Vector2D.hpp>
 
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <tuple>
 #include <utility>
 
@@ -197,12 +199,13 @@ void Column::set_hposition(double x) {
     this->update_window_hposition();
 }
 
-static void set_window_hposition(CWindow &win, double x) {
+static void set_window_hposition(CWindow &win, double x, Vector2D padding) {
 
     win.m_vPosition.x = x;
 
     const auto rsv = win.getFullWindowReservedArea();
-    win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
+    win.m_vRealPosition = win.m_vPosition + rsv.topLeft + padding;
+    win.m_vRealSize     = win.m_vSize - (rsv.topLeft + rsv.bottomRight) - padding * 2;
 
     hypaper_log(
         "Window@{}: {},{};{},{}",
@@ -212,14 +215,14 @@ static void set_window_hposition(CWindow &win, double x) {
     );
 }
 
-static void set_window_vposition_and_size(CWindow &win, double y, double w, double h) {
+static void set_window_vposition_and_size(CWindow &win, double y, double w, double h, Vector2D padding) {
     win.m_vPosition.y = y;
     win.m_vSize.x     = w;
     win.m_vSize.y     = h;
 
     const auto rsv = win.getFullWindowReservedArea();
-    win.m_vRealPosition = win.m_vPosition + rsv.topLeft;
-    win.m_vRealSize     = win.m_vSize - (rsv.topLeft + rsv.bottomRight);
+    win.m_vRealPosition = win.m_vPosition + rsv.topLeft + padding;
+    win.m_vRealSize     = win.m_vSize - (rsv.topLeft + rsv.bottomRight) - padding * 2;
 
     hypaper_log(
         "Window@{}: {},{};{},{}",
@@ -233,57 +236,48 @@ static double calc_window_width(const CMonitor &mon, double col_wid) {
     assert(col_wid > 0);
     if (col_wid <= 1.0)
         col_wid *= mon.vecSize.x;
-    const double gaps_in_x2 = conf::gaps_in() * 2;
-    return col_wid > gaps_in_x2 ? col_wid - gaps_in_x2 : col_wid;
+    return col_wid;
 }
 
-static double calc_window_hposition(const CMonitor &mon, double col_x, double col_wid) {
-    assert(col_wid > 0);
-    if (col_wid <= 1.0)
-        col_wid *= mon.vecSize.x;
-    const double gaps_in = conf::gaps_in();
-    return col_wid > gaps_in * 2 ? col_x + gaps_in : col_x;
-}
-
-static std::tuple<double, double, double>
-calc_window_vposition_and_height_and_gap(const CMonitor &mon, std::size_t win_count) {
+static std::tuple<double, double>
+calc_window0_vposition_and_height(const CMonitor &mon, std::size_t win_count) {
     assert(win_count);
-    double col_y = mon.vecPosition.y, col_h = mon.vecSize.y;
-    const double gaps_in_x2 = conf::gaps_in() * 2, gaps_out = conf::gaps_out();
-    if (col_h > gaps_out * 2 + gaps_in_x2 * (win_count - 1))
-        return { col_y + gaps_out, (col_h - gaps_out * 2 + gaps_in_x2) / win_count - gaps_in_x2, gaps_in_x2 };
-    return { col_y, col_h / win_count, 0 };
+    const auto gaps_out = conf::gaps_out(), gaps_in = conf::gaps_in();
+    auto win_y = mon.vecPosition.y + gaps_out - gaps_in;
+    const auto col_h = mon.vecSize.y - (gaps_out - gaps_in) * 2;
+    return { win_y, col_h / win_count };
 }
 
 void Column::update_window_hposition() const {
+    const auto win_x = this->h_position;
+    Vector2D win_p(conf::gaps_in(), conf::gaps_in());
+
     if (this->has_window_list) {
         if (this->window_list.empty())
             return;
-        auto &mon = get_window_monitor(this->window_list.front());
-        const auto win_x = calc_window_hposition(mon, this->h_position, this->width);
         for (const auto &wp : this->window_list)
-            set_window_hposition(*wp, win_x);
+            set_window_hposition(*wp, win_x, win_p);
     } else {
         if (!this->window)
             return;
         auto &win = *this->window;
-        auto &mon = get_window_monitor(&win);
-        const auto win_x = calc_window_hposition(mon, this->h_position, this->width);
-        set_window_hposition(*this->window, win_x);
+        set_window_hposition(win, win_x, win_p);
     }
 }
 
 void Column::update_window_vposition_and_size() const {
+    Vector2D win_p(conf::gaps_in(), conf::gaps_in());
+
     if (this->has_window_list) {
         if (this->window_list.empty())
             return;
         const auto &mon = get_window_monitor(this->window_list.front());
         const auto win_width = calc_window_width(mon, this->width);
-        auto [win_y, win_height, win_gap] =
-                calc_window_vposition_and_height_and_gap(mon, this->window_list.size());
+        auto [win_y, win_height] =
+                calc_window0_vposition_and_height(mon, this->window_list.size());
         for (const auto &wp : this->window_list) {
-            set_window_vposition_and_size(*wp, win_y, win_width, win_height);
-            win_y += win_height + win_gap;
+            set_window_vposition_and_size(*wp, win_y, win_width, win_height, win_p);
+            win_y += win_height;
         }
     } else {
         if (!this->window)
@@ -291,8 +285,7 @@ void Column::update_window_vposition_and_size() const {
         auto &win = *this->window;
         const auto &mon = get_window_monitor(&win);
         const auto win_width = calc_window_width(mon, this->width);
-        const auto [win_y, win_height, win_gap] =
-            calc_window_vposition_and_height_and_gap(mon, 1);
-        set_window_vposition_and_size(win, win_y, win_width, win_height);
+        const auto [win_y, win_height] = calc_window0_vposition_and_height(mon, 1);
+        set_window_vposition_and_size(win, win_y, win_width, win_height, win_p);
     }
 }
