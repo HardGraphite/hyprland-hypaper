@@ -14,7 +14,10 @@ class Workbench;
 /// The paper layout.
 class Layout final : public IHyprLayout {
 public:
-    enum class ScrollArg { AUTO, CENTER, ALIGN_L, ALIGN_R };
+    struct ScrollArg {
+        enum { AUTO, CENTER, ALIGN_L, ALIGN_R, OFFSET } type;
+        double value = 0.0;
+    };
 
     static const std::string name;
 

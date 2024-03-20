@@ -180,14 +180,16 @@ void Column::set_width(double w) {
     this->update_window_vposition_and_size();
 }
 
-double Column::get_actual_width() const noexcept {
+double Column::get_actual_width(double monitor_width) const noexcept {
     if (this->width > 1.0)
         return this->width;
 
     if (this->is_empty())
         return this->width;
-    const auto &mon = get_window_monitor(this->get_window(0));
-    return mon.vecSize.x * this->width;
+
+    if (monitor_width <= -0.0)
+        monitor_width = get_window_monitor(this->get_window(0)).vecSize.x;
+    return monitor_width * this->width;
 }
 
 void Column::set_hposition(double x) {

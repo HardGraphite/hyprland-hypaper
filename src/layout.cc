@@ -221,7 +221,7 @@ void Layout::cmd_column_width(double w) {
 
     wb.get_focused_column().set_width(w);
     wb.on_column_width_changed(wb.get_focused_column_index());
-    wb.scroll();
+    wb.scroll_to_fit_focus();
 }
 
 void Layout::cmd_absorb_window() {
@@ -263,23 +263,25 @@ void Layout::cmd_expel_window() {
 }
 
 void Layout::cmd_scroll(ScrollArg arg) {
-    hypaper_log("Layout::{}({})", __func__, int(arg));
+    hypaper_log("Layout::{}({{{}, {}}})", __func__, int(arg.type), arg.value);
 
     auto wbp = this->get_workbench(get_active_workspace());
     if (!wbp || wbp->is_empty())
         return;
     auto &wb = *wbp;
 
-    switch (arg) {
-        using enum ScrollArg;
-    case AUTO:
-        wb.scroll();
-        break;
-    case CENTER:
-        wb.scroll(true);
-        break;
-    default:
-        break;
+    if (arg.type == ScrollArg::OFFSET) {
+        wb.scroll(arg.value);
+    } else {
+        Workbench::ScrollAlignment sa;
+        switch (arg.type) {
+        case ScrollArg::AUTO   : sa = Workbench::ScrollAlignment::AUTO  ; break;
+        case ScrollArg::CENTER : sa = Workbench::ScrollAlignment::CENTER; break;
+        case ScrollArg::ALIGN_L: sa = Workbench::ScrollAlignment::LEFT  ; break;
+        case ScrollArg::ALIGN_R: sa = Workbench::ScrollAlignment::RIGHT ; break;
+        default: return;
+        }
+        wb.scroll_to_fit_focus(sa);
     }
 }
 

@@ -34,7 +34,7 @@ public:
     bool is_empty() const noexcept;
     void set_width(double w);
     double get_width() const noexcept { return this->width; }
-    double get_actual_width() const noexcept;
+    double get_actual_width(double monitor_width = -1.0) const noexcept;
     void set_hposition(double x);
     double get_hposition() const noexcept { return this->h_position; }
     void _apply_window_data() const;

@@ -113,6 +113,51 @@ Workbench::FindWinResult Workbench::find_window(CWindow *win) const {
     return { Workbench::NPOS, Column::NPOS };
 }
 
+void Workbench::scroll_to_fit_focus(ScrollAlignment sa) {
+    if (this->is_empty())
+        return;
+
+    auto &fw = this->get_focused_column();
+    const auto fw_left = fw.get_hposition();
+    const auto mon_left = this->monitor_hposition(), mon_width = this->monitor_width();
+    double fw_scroll_to;
+
+    if (sa == ScrollAlignment::AUTO) {
+        if (fw_left < mon_left)
+            sa = ScrollAlignment::LEFT;
+        else if (fw_left + fw.get_actual_width(mon_width) > mon_left + mon_width)
+            sa = ScrollAlignment::RIGHT;
+        else if (this->focused_column == 0 && fw_left > mon_left)
+            sa = ScrollAlignment::LEFT;
+        else
+            return;
+    }
+
+    switch (sa) {
+    case ScrollAlignment::LEFT:
+        fw_scroll_to = mon_left;
+        break;
+    case ScrollAlignment::CENTER:
+        fw_scroll_to = mon_left + (mon_width - fw.get_actual_width(mon_width)) / 2;
+        break;
+    case ScrollAlignment::RIGHT:
+        fw_scroll_to = mon_left + mon_width - fw.get_actual_width(mon_width);
+        break;
+    default:
+        return;
+    }
+
+    const auto scroll_offset = fw_scroll_to - fw_left;
+    this->scroll(scroll_offset);
+}
+
+void Workbench::scroll(double offset) {
+    if (!offset)
+        return;
+    for (auto &&col : this->columns)
+        col->set_hposition(col->get_hposition() + offset);
+}
+
 void Workbench::on_column_width_changed(std::size_t index) {
     if (index + 1 >= this->columns.size())
         return;
@@ -128,33 +173,6 @@ double Workbench::monitor_hposition() const {
 double Workbench::monitor_width() const {
     const auto monitor_id = g_pCompositor->getWorkspaceByID(this->workspace_id)->m_iMonitorID;
     return g_pCompositor->getMonitorFromID(monitor_id)->vecSize.x;
-}
-
-void Workbench::scroll_to_fit_focus(bool center) {
-    if (this->is_empty())
-        return;
-
-    auto &fw = this->get_focused_column();
-    const auto fw_left = fw.get_hposition();
-    const auto mon_left = this->monitor_hposition();
-    double scroll_to;
-
-    if (center) {
-        scroll_to = std::round(this->monitor_hposition() + (this->monitor_width() - fw.get_actual_width()) / 2);
-        if (scroll_to == fw_left)
-            return;
-    } else {
-        if (fw_left < mon_left)
-            scroll_to = mon_left;
-        else if (const auto mon_right = mon_left + this->monitor_width(), fw_width = fw.get_actual_width(); fw_left + fw_width > mon_right)
-            scroll_to = mon_right - fw_width;
-        else
-            return;
-    }
-
-    const auto scroll_offset = scroll_to - fw_left;
-    for (auto &&col : this->columns)
-        col->set_hposition(col->get_hposition() + scroll_offset);
 }
 
 void Workbench::update_column_position(double column_x, std::size_t index_start, std::size_t count) {

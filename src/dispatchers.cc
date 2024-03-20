@@ -1,5 +1,6 @@
 #include "dispatchers.h"
 
+#include <cctype>
 #include <charconv>
 #include <system_error>
 
@@ -37,20 +38,23 @@ static void cmd_expel_window([[maybe_unused]] std::string arg) {
 static void cmd_scroll(std::string arg) {
     hypaper_log("{}({})", __func__, arg);
 
-    if (arg.size() == 1) {
-        Layout::ScrollArg scroll_arg;
+    Layout::ScrollArg scroll_arg;
+    if (arg.empty()) {
+        scroll_arg.type = Layout::ScrollArg::AUTO;
+    } else if (arg.size() == 1 && std::ispunct(arg[0])) {
         switch (arg[0]) {
-            using enum Layout::ScrollArg;
-        case '^':
-            scroll_arg = CENTER;
-            break;
-        case '=':
-        default:
-            scroll_arg = AUTO;
-            break;
+        case '=': scroll_arg.type = Layout::ScrollArg::AUTO; break;
+        case '^': scroll_arg.type = Layout::ScrollArg::CENTER; break;
+        case '<': scroll_arg.type = Layout::ScrollArg::ALIGN_L; break;
+        case '>': scroll_arg.type = Layout::ScrollArg::ALIGN_R; break;
+        default: return;
         }
-        layout->cmd_scroll(scroll_arg);
+    } else {
+        scroll_arg.type = Layout::ScrollArg::OFFSET;
+        if (std::from_chars(arg.c_str(), arg.c_str() + arg.size(), scroll_arg.value).ec != std::errc{})
+            return;
     }
+    layout->cmd_scroll(scroll_arg);
 }
 
 #ifndef NDEBUG

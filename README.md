@@ -38,4 +38,4 @@ The following dispatchers are available:
 | `hypaper:column_width`  | set the width of current column     | float        |
 | `hypaper:absorb_window` | absorb the window to the right      | none         |
 | `hypaper:expel_window`  | expel current window to the right   | none         |
-| `hypaper:scroll`        | scroll columns                      | `=`=auto; `^`=center |
+| `hypaper:scroll`        | scroll columns                      | `=`: auto; `^`: center; `<`: align-left; `>`: align-right; `<float>`: offset |

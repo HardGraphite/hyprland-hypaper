@@ -19,6 +19,10 @@ public:
         operator bool() const noexcept { return column != NPOS && window != NPOS; }
     };
 
+    enum struct ScrollAlignment {
+        AUTO, LEFT, CENTER, RIGHT,
+    };
+
     static constexpr std::size_t NPOS = std::size_t(-1);
 
     explicit Workbench(int workspace_id);
@@ -39,7 +43,8 @@ public:
     void clear();
     bool is_empty() const noexcept;
     int get_workspace_id() const noexcept;
-    void scroll(bool center = false);
+    void scroll_to_fit_focus(ScrollAlignment sa = ScrollAlignment::AUTO);
+    void scroll(double offset);
     void on_column_width_changed(std::size_t index);
 
 private:
@@ -49,7 +54,6 @@ private:
 
     double monitor_hposition() const;
     double monitor_width() const;
-    void scroll_to_fit_focus(bool center = false);
     void update_column_position(double x, std::size_t index_start, std::size_t count);
 };
 
@@ -78,10 +82,6 @@ inline std::size_t Workbench::get_focused_column_index() const noexcept {
 
 inline std::size_t Workbench::count_columns() const noexcept {
     return this->columns.size();
-}
-
-inline void Workbench::scroll(bool center) {
-    this->scroll_to_fit_focus(center);
 }
 
 }
