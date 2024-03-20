@@ -175,66 +175,59 @@ void Layout::resizeActiveWindow(const Vector2D &delta, eRectCorner corner, CWind
 }
 
 void Layout::fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool on) {
-    hypaper_log("Layout::{}({}, {})", __func__, static_cast<void *>(win), on);
-
-#if 0
+    hypaper_log("Layout::{}({}, {}, {})", __func__, static_cast<void *>(win), int(mode), on);
 
     const auto monitor   = g_pCompositor->getMonitorFromID(win->m_iMonitorID);
     const auto workspace = g_pCompositor->getWorkspaceByID(win->m_iWorkspaceID);
 
-    if (workspace->m_bHasFullscreenWindow && on)
+    if (workspace->m_bHasFullscreenWindow == on)
         return;
 
-    if (win->m_bIsFloating && on) {
-        win->m_vLastFloatingSize     = win->m_vRealSize.goalv();
-        win->m_vLastFloatingPosition = win->m_vRealPosition.goalv();
-        win->m_vPosition             = win->m_vRealPosition.goalv();
-        win->m_vSize                 = win->m_vRealSize.goalv();
-    }
-
     win->m_bIsFullscreen              = on;
-    workspace->m_bHasFullscreenWindow = !workspace->m_bHasFullscreenWindow;
+    workspace->m_bHasFullscreenWindow = on;
 
     win->updateDynamicRules();
     win->updateWindowDecos();
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"fullscreen", on ? "1" : "0"});
+    using namespace std::string_literals;
+    g_pEventManager->postEvent(SHyprIPCEvent{"fullscreen"s, on ? "1"s : "0"s});
     EMIT_HOOK_EVENT("fullscreen", win);
 
-    if (!win->m_bIsFullscreen) {
-        // if it got its fullscreen disabled, set back its node if it had one
-        const auto PNODE = getNodeFromWindow(win);
-        if (PNODE)
-            applyNodeDataToWindow(PNODE);
-        else {
-            // get back its' dimensions from position and size
+    if (!on) {
+        if (win->m_bIsFloating) {
             win->m_vRealPosition = win->m_vLastFloatingPosition;
             win->m_vRealSize     = win->m_vLastFloatingSize;
             win->updateSpecialRenderData();
+        } else {
+            auto &wb = this->get_or_new_workbench(win->m_iWorkspaceID);
+            if (auto fwr = wb.find_window(win); fwr)
+                wb.get_column(fwr.column)._apply_window_data();
+            else
+                wb.add_window(win);
         }
     } else {
-        // if it now got fullscreen, make it fullscreen
+        if (win->m_bIsFloating) {
+            win->m_vLastFloatingSize     = win->m_vRealSize.goalv();
+            win->m_vLastFloatingPosition = win->m_vRealPosition.goalv();
+            win->m_vPosition             = win->m_vRealPosition.goalv();
+            win->m_vSize                 = win->m_vRealSize.goalv();
+        }
 
         workspace->m_efFullscreenMode = mode;
 
-        // apply new pos and size being monitors' box
-        if (mode == FULLSCREEN_FULL) {
+        switch (mode) {
+        case FULLSCREEN_FULL:
             win->m_vRealPosition = monitor->vecPosition;
             win->m_vRealSize     = monitor->vecSize;
-        } else {
-            // This is a massive hack.
-            // We make a fake "only" node and apply
-            // To keep consistent with the settings without C+P code
+            break;
 
-            SDwindleNodeData fakeNode;
-            fakeNode.win     = win;
-            fakeNode.box         = {monitor->vecPosition + monitor->vecReservedTopLeft, monitor->vecSize - monitor->vecReservedTopLeft - monitor->vecReservedBottomRight};
-            fakeNode.workspaceID = win->m_iWorkspaceID;
-            win->m_vPosition = fakeNode.box.pos();
-            win->m_vSize     = fakeNode.box.size();
-            fakeNode.ignoreFullscreenChecks = true;
+        case FULLSCREEN_MAXIMIZED:
+            win->m_vRealPosition = monitor->vecPosition + monitor->vecReservedTopLeft;
+            win->m_vRealSize     = monitor->vecSize - (monitor->vecReservedTopLeft + monitor->vecReservedBottomRight);
+            break;
 
-            applyNodeDataToWindow(&fakeNode);
+        default:
+            break;
         }
     }
 
@@ -242,8 +235,6 @@ void Layout::fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool
     g_pXWaylandManager->setWindowSize(win, win->m_vRealSize.goalv());
     g_pCompositor->changeWindowZOrder(win, true);
     this->recalculateMonitor(monitor->ID);
-
-#endif
 }
 
 std::any Layout::layoutMessage(SLayoutMessageHeader, std::string) {

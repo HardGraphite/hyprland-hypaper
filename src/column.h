@@ -46,6 +46,11 @@ public:
     void set_hposition(double x);
     double get_hposition() const noexcept { return this->h_position; }
 
+    void _apply_window_data() const {
+        this->update_window_hposition();
+        this->update_window_vposition_and_size();
+    }
+
 private:
     double width;
     double h_position;
