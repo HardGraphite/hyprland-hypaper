@@ -257,12 +257,18 @@ void Column::update_window_hposition() const {
     if (this->has_window_list) {
         if (this->window_list.empty())
             return;
-        for (const auto &wp : this->window_list)
-            set_window_hposition(*wp, win_x, win_p);
+        for (const auto &wp : this->window_list) {
+            auto &win = *wp;
+            if (win.m_bIsFullscreen)
+                return;
+            set_window_hposition(win, win_x, win_p);
+        }
     } else {
         if (!this->window)
             return;
         auto &win = *this->window;
+        if (win.m_bIsFullscreen)
+            return;
         set_window_hposition(win, win_x, win_p);
     }
 }
@@ -278,13 +284,18 @@ void Column::update_window_vposition_and_size() const {
         auto [win_y, win_height] =
                 calc_window0_vposition_and_height(mon, this->window_list.size());
         for (const auto &wp : this->window_list) {
-            set_window_vposition_and_size(*wp, win_y, win_width, win_height, win_p);
+            auto &win = *wp;
+            if (win.m_bIsFullscreen)
+                return;
+            set_window_vposition_and_size(win, win_y, win_width, win_height, win_p);
             win_y += win_height;
         }
     } else {
         if (!this->window)
             return;
         auto &win = *this->window;
+        if (win.m_bIsFullscreen)
+            return;
         const auto &mon = get_window_monitor(&win);
         const auto win_width = calc_window_width(mon, this->width);
         const auto [win_y, win_height] = calc_window0_vposition_and_height(mon, 1);
