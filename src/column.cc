@@ -243,8 +243,10 @@ static std::tuple<double, double>
 calc_window0_vposition_and_height(const CMonitor &mon, std::size_t win_count) {
     assert(win_count);
     const auto gaps_out = conf::gaps_out(), gaps_in = conf::gaps_in();
-    auto win_y = mon.vecPosition.y + gaps_out - gaps_in;
-    const auto col_h = mon.vecSize.y - (gaps_out - gaps_in) * 2;
+    const auto mon_y = mon.vecPosition.y + mon.vecReservedTopLeft.y;
+    const auto mon_h = mon.vecSize.y - mon.vecReservedBottomRight.y - mon.vecReservedTopLeft.y;
+    const auto win_y = mon_y + gaps_out - gaps_in;
+    const auto col_h = mon_h - (gaps_out - gaps_in) * 2;
     return { win_y, col_h / win_count };
 }
 
