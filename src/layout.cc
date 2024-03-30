@@ -1,11 +1,14 @@
 #include "layout.h"
 
 #include <cassert>
+#include <charconv>
+#include <string_view>
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/Window.hpp>
 
 #include "column.h"
+#include "config.h"
 #include "logging.h"
 #include "workbench.h"
 
@@ -43,8 +46,10 @@ bool Layout::isWindowTiled(CWindow *win) {
 void Layout::onWindowCreatedTiling(CWindow *win, eDirection) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 
-    if (const auto wid = win->m_iWorkspaceID; wid >= 0)
-        this->get_or_new_workbench(wid).add_window(win);
+    if (const auto wid = win->m_iWorkspaceID; wid >= 0) {
+        const auto width = this->column_width_rules(win->m_szInitialClass);
+        this->get_or_new_workbench(wid).add_window(win, width);
+    }
 }
 
 void Layout::onWindowRemovedTiling(CWindow *win) {
@@ -314,5 +319,39 @@ Workbench &Layout::get_or_new_workbench(int workspace_id) {
                 return *wp.get();
         }
         return *this->extra_workspaces.emplace_back(new Workbench(workspace_id)).get();
+    }
+}
+
+double Layout::ColumnWidthRules::operator()(const std::string &client_class) {
+    if (const char *conf_str = conf::column_width_rules(); conf_str != this->last_conf_str)
+        this->reload_rules(conf_str);
+    if (const auto iter = this->rules.find(client_class); iter != this->rules.end())
+        return iter->second;
+    return conf::column_width();
+}
+
+void Layout::ColumnWidthRules::reload_rules(const char *conf) {
+    hypaper_log("Layout::ColumnWidthRules::{}({})", __func__, conf);
+
+    this->last_conf_str = reinterpret_cast<const void *>(conf);
+    this->rules.clear();
+    for (auto conf_sv = std::string_view(conf); !conf_sv.empty(); ) {
+        const auto comma_pos = conf_sv.find(',');
+        auto rule_sv = conf_sv.substr(0, comma_pos);
+        if (comma_pos == std::string_view::npos)
+            conf_sv = {};
+        else
+            conf_sv.remove_prefix(comma_pos + 1);
+        const auto eq_pos = rule_sv.find('=');
+        double value = 0.0;
+        if (
+            eq_pos == std::string_view::npos ||
+            std::from_chars(rule_sv.data() + eq_pos + 1, rule_sv.data() + rule_sv.size(), value).ec != std::errc{}
+        ) {
+            hypaper_log("Layout::ColumnWidthRules : bad-rule: {}", rule_sv);
+            continue;
+        }
+        hypaper_log("Layout::ColumnWidthRules : {} = {}", rule_sv.substr(0, eq_pos), value);
+        this->rules.emplace(rule_sv.substr(0, eq_pos), value);
     }
 }

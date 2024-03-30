@@ -14,7 +14,7 @@ Workbench::Workbench(int ws) : focused_column(NPOS), workspace_id(ws) {
     hypaper_log("Workbench#{}: created", this->workspace_id);
 }
 
-void Workbench::add_window(CWindow *win) {
+void Workbench::add_window(CWindow *win, double width) {
     hypaper_log("Workbench#{}: add window {}", this->workspace_id, static_cast<void *>(win));
 
     const std::size_t new_col_index = this->focused_column + 1;
@@ -25,7 +25,7 @@ void Workbench::add_window(CWindow *win) {
         new_col_x = this->get_column(new_col_index).get_hposition();
     else
         new_col_x = this->get_focused_column().get_hposition() + this->get_focused_column().get_actual_width();
-    auto new_column = new Column(new_col_x, win);
+    auto new_column = new Column(new_col_x, win, width);
     this->columns.emplace(this->columns.begin() + new_col_index, new_column);
     this->focused_column = new_col_index;
     this->update_column_position(new_col_x + new_column->get_actual_width(), new_col_index + 1, NPOS);

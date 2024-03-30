@@ -13,7 +13,7 @@ class Column final {
 public:
     static constexpr std::size_t NPOS = std::size_t(-1);
 
-    explicit Column(double h_pos, CWindow *win = nullptr);
+    explicit Column(double h_pos, CWindow *win = nullptr, double width = 0.0);
     Column(const Column &) = delete;
     Column(Column &&) = delete;
     ~Column();

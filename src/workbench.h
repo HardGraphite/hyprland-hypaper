@@ -27,7 +27,7 @@ public:
 
     explicit Workbench(int workspace_id);
 
-    void add_window(CWindow *win);
+    void add_window(CWindow *win, double width = 0.0);
     CWindow *del_window(std::size_t col_index, std::size_t win_index);
     FindWinResult find_window(CWindow *win) const;
     void focus_column(std::size_t index);

@@ -4,7 +4,9 @@
 
 #include <array>
 #include <memory>
+#include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 namespace hypaper {
@@ -53,8 +55,20 @@ public:
     Workbench *get_workbench(int workspace_id) const;
 
 private:
+    class ColumnWidthRules {
+    public:
+        double operator()(const std::string &client_class);
+
+    private:
+        const void *last_conf_str = nullptr;
+        std::unordered_map<std::string, double> rules;
+
+        void reload_rules(const char *conf);
+    };
+
     std::array<std::unique_ptr<Workbench>, 10> workspaces;
     std::vector<std::unique_ptr<Workbench>> extra_workspaces;
+    ColumnWidthRules column_width_rules;
 
     Workbench &get_or_new_workbench(int workspace_id);
 };

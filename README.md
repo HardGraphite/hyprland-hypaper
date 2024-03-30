@@ -25,9 +25,10 @@ hyprctl keyword general:layout paper
 
 The following config variables are available (in namespace `plugin:hypaper`):
 
-| Name           | Description                                | Type | Default |
-|----------------|--------------------------------------------|------|---------|
-| `column_width` | default column width; ratio of screen width when in range `(0,1]` | float | `1.0` |
+| Name                 | Description                                | Type | Default |
+|----------------------|--------------------------------------------|------|---------|
+| `column_width`       | default column width; ratio of screen width when in range `(0,1]` | float | `1.0` |
+| `column_width_rules` | list of column width rules like `"class=width,class2=width2,..."` | string|       |
 
 ### Dispatchers
 

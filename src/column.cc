@@ -19,14 +19,14 @@ static CMonitor &get_window_monitor(CWindow *win) {
     return *g_pCompositor->getMonitorFromID(win->m_iMonitorID);
 }
 
-Column::Column(double h_pos, CWindow *win):
-    width(0), h_position(h_pos),
+Column::Column(double h_pos, CWindow *win, double width):
+    width(0.0), h_position(h_pos),
     focused_window(NPOS),
     has_window_list(false), window(nullptr)
 {
     hypaper_log("Column@{}: created, x = {}", static_cast<void *>(this), h_pos);
 
-    this->set_width(conf::column_width());
+    this->set_width(width > 0.0 ? width : conf::column_width());
     if (win)
         this->add_window(win);
 }
