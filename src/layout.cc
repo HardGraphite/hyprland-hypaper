@@ -291,8 +291,8 @@ void Layout::cmd_scroll(ScrollArg arg) {
 }
 
 Workbench *Layout::get_workbench(int workspace_id) const {
-    if (std::size_t(workspace_id) <=this->workspaces.size()) {
-        auto &w = this->workspaces[workspace_id];
+    if (workspace_id >= 1 && std::size_t(workspace_id) <= this->workspaces.size()) {
+        auto &w = this->workspaces[workspace_id - 1];
         if (!w)
             return nullptr;
         return w.get();
@@ -306,10 +306,8 @@ Workbench *Layout::get_workbench(int workspace_id) const {
 }
 
 Workbench &Layout::get_or_new_workbench(int workspace_id) {
-    assert(workspace_id >= 0);
-
-    if (std::size_t(workspace_id) <=this->workspaces.size()) {
-        auto &w = this->workspaces[workspace_id];
+    if (workspace_id >= 1 && std::size_t(workspace_id) <= this->workspaces.size()) {
+        auto &w = this->workspaces[workspace_id - 1];
         if (!w)
             w.reset(new Workbench(workspace_id));
         return *w.get();
