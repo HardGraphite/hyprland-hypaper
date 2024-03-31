@@ -1,11 +1,12 @@
 #include "workbench.h"
 
 #include <cstddef>
-#include <cmath>
 
 #include <hyprland/src/Compositor.hpp>
 
 #include "column.h"
+#include "hypaper.h"
+#include "indicator.h"
 #include "logging.h"
 
 using namespace hypaper;
@@ -114,8 +115,21 @@ Workbench::FindWinResult Workbench::find_window(CWindow *win) const {
 }
 
 void Workbench::scroll_to_fit_focus(ScrollAlignment sa) {
-    if (this->is_empty())
+    if (this->is_empty()) {
+        *indicator << Indicator::ColumnStatus::EMPTY << flush;
         return;
+    }
+
+    Indicator::ColumnStatus column_status;
+    if (const auto n = this->columns.size(); n == 1)
+        column_status = Indicator::ColumnStatus::SINGLE;
+    else if (this->focused_column == 0)
+        column_status = Indicator::ColumnStatus::FIRST;
+    else if (this->focused_column + 1 == n)
+        column_status = Indicator::ColumnStatus::LAST;
+    else
+        column_status = Indicator::ColumnStatus::MIDDLE;
+    *indicator << column_status << flush;
 
     auto &fw = this->get_focused_column();
     const auto fw_left = fw.get_hposition();

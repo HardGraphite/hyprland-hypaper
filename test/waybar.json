@@ -1,0 +1,17 @@
+{
+    "layer": "top",
+    "spacing": 10,
+    "modules-left": [
+        "hyprland/workspaces",
+        "custom/hypaper-indicator",
+        "hyprland/window"
+    ],
+    "custom/hypaper-indicator": {
+        "exec": "exec stdbuf -o0 sed 's/.*/{\"alt\":\"&\"}/' /tmp/hypr/$HYPRLAND_INSTANCE_SIGNATURE/hypaper-indicator",
+        "return-type": "json",
+        "format": "[{icon}]",
+        "format-icons": { "0": "0", "1": "1", "2": ">", "3": "+", "4": "&lt;" },
+        "restart-interval": 2,
+        "tooltip": false
+    }
+}
