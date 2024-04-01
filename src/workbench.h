@@ -10,6 +10,7 @@ class CWindow;
 namespace hypaper {
 
 class Column;
+class Indicator;
 
 /// The container of columns.
 class Workbench final {
@@ -52,10 +53,14 @@ private:
     std::size_t focused_column;
     int workspace_id;
 
+    friend Indicator &operator<<(Indicator &i, const Workbench &wb);
+
     double monitor_hposition() const;
     double monitor_width() const;
     void update_column_position(double x, std::size_t index_start, std::size_t count);
 };
+
+Indicator &operator<<(Indicator &i, const Workbench &wb);
 
 inline bool Workbench::is_empty() const noexcept {
     return this->columns.empty();

@@ -116,21 +116,10 @@ Workbench::FindWinResult Workbench::find_window(CWindow *win) const {
 }
 
 void Workbench::scroll_to_fit_focus(ScrollAlignment sa) {
-    if (this->is_empty()) {
-        *indicator << Indicator::ColumnStatus::EMPTY << flush;
-        return;
-    }
+    *indicator << *this << flush;
 
-    Indicator::ColumnStatus column_status;
-    if (const auto n = this->columns.size(); n == 1)
-        column_status = Indicator::ColumnStatus::SINGLE;
-    else if (this->focused_column == 0)
-        column_status = Indicator::ColumnStatus::FIRST;
-    else if (this->focused_column + 1 == n)
-        column_status = Indicator::ColumnStatus::LAST;
-    else
-        column_status = Indicator::ColumnStatus::MIDDLE;
-    *indicator << column_status << flush;
+    if (this->is_empty())
+        return;
 
     auto &fw = this->get_focused_column();
     const auto fw_left = fw.get_hposition();
@@ -210,4 +199,19 @@ void Workbench::update_column_position(double column_x, std::size_t index_start,
         column.set_hposition(column_x);
         column_x += column.get_actual_width();
     }
+}
+
+Indicator &hypaper::operator<<(Indicator &indicator, const Workbench &wb) {
+    Indicator::ColumnStatus column_status;
+    if (wb.is_empty())
+        column_status = Indicator::ColumnStatus::EMPTY;
+    else if (const auto n = wb.columns.size(); n == 1)
+        column_status = Indicator::ColumnStatus::SINGLE;
+    else if (wb.focused_column == 0)
+        column_status = Indicator::ColumnStatus::FIRST;
+    else if (wb.focused_column + 1 == n)
+        column_status = Indicator::ColumnStatus::LAST;
+    else
+        column_status = Indicator::ColumnStatus::MIDDLE;
+    return indicator << column_status;
 }

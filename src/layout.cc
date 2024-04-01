@@ -6,9 +6,13 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/Window.hpp>
+#include <hyprland/src/desktop/Workspace.hpp>
+#include <hyprland/src/managers/HookSystemManager.hpp>
 
 #include "column.h"
 #include "config.h"
+#include "hypaper.h"
+#include "indicator.h"
 #include "logging.h"
 #include "workbench.h"
 
@@ -19,15 +23,26 @@ const std::string Layout::name = "paper"s;
 
 Layout::~Layout() = default;
 
+static std::function<void(void*, SCallbackInfo& info, std::any data)>
+hook_func_event_workspace = [](void *, SCallbackInfo &, std::any data) {
+    auto ws = std::any_cast<CWorkspace *>(data);
+    auto wb = layout->get_workbench(ws->m_iID);
+    (wb ? (*indicator << *wb) : (*indicator << Indicator::ColumnStatus::EMPTY)) << flush;
+};
+
 void Layout::onEnable() {
     hypaper_log("Layout::{}()", __func__);
 
     for (auto &wp : g_pCompositor->m_vWindows)
         this->onWindowCreatedTiling(wp.get(), eDirection::DIRECTION_DEFAULT);
+
+    g_pHookSystem->hookStatic("workspace"s, &hook_func_event_workspace);
 }
 
 void Layout::onDisable() {
     hypaper_log("Layout::{}()", __func__);
+
+    g_pHookSystem->unhook(&hook_func_event_workspace);
 
     this->foreach_workspace([](Workbench &wb) -> bool {
         wb.clear();
