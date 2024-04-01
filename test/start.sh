@@ -4,6 +4,8 @@ HYPR_CONF_FILE="$(dirname $(realpath "$0"))/hyprland.conf"
 export HYPAPER_PROJECT_DIR="$(dirname $(dirname $(realpath "$0")))"
 export HYPAPER_TEST_INIT_SCRIPT="$HYPAPER_PROJECT_DIR/test/init.sh"
 
+cd "$HYPAPER_PROJECT_DIR"
+
 case "$1" in
 gdb)
     gdb --eval-command 'catch signal SIGSEGV SIGABRT' \
