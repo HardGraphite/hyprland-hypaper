@@ -224,7 +224,10 @@ void Layout::cmd_column_width(double w) {
         return;
     auto &wb = *wbp;
 
-    wb.get_focused_column().set_width(w);
+    auto &col = wb.get_focused_column();
+    if (w == 0.0 && !col.is_empty())
+        w = this->column_width_rules(col.get_focused_window()->m_szInitialClass);
+    col.set_width(w);
     wb.on_column_width_changed(wb.get_focused_column_index());
     wb.scroll_to_fit_focus();
 }

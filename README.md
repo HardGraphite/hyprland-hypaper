@@ -38,7 +38,7 @@ The following dispatchers are available:
 
 | Name                    | Description                         | Params       |
 |-------------------------|-------------------------------------|--------------|
-| `hypaper:column_width`  | set the width of current column     | float        |
+| `hypaper:column_width`  | set the width of current column     | float; `0` for default width |
 | `hypaper:absorb_window` | absorb the window to the right      | none         |
 | `hypaper:expel_window`  | expel current window to the right   | none         |
 | `hypaper:scroll`        | scroll columns                      | `=`: auto; `^`: center; `<`: align-left; `>`: align-right; `<float>`: offset |
