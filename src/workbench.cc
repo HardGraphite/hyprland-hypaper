@@ -5,6 +5,7 @@
 #include <hyprland/src/Compositor.hpp>
 
 #include "column.h"
+#include "config.h"
 #include "hypaper.h"
 #include "indicator.h"
 #include "logging.h"
@@ -137,12 +138,17 @@ void Workbench::scroll_to_fit_focus(ScrollAlignment sa) {
     double fw_scroll_to;
 
     if (sa == ScrollAlignment::AUTO) {
-        if (fw_left < mon_left)
+        const auto n_cols = this->columns.size();
+        if (n_cols == 1)
+            sa = conf::mono_center() ? ScrollAlignment::CENTER : ScrollAlignment::LEFT;
+        else if (this->focused_column == 0)
+            sa = ScrollAlignment::LEFT;
+        else if (this->focused_column + 1 == n_cols)
+            sa = ScrollAlignment::RIGHT;
+        else if (fw_left < mon_left)
             sa = ScrollAlignment::LEFT;
         else if (fw_left + fw.get_actual_width(mon_width) > mon_left + mon_width)
             sa = ScrollAlignment::RIGHT;
-        else if (this->focused_column == 0 && fw_left > mon_left)
-            sa = ScrollAlignment::LEFT;
         else
             return;
     }

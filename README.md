@@ -29,6 +29,7 @@ The following config variables are available (in namespace `plugin:hypaper`):
 |----------------------|--------------------------------------------|------|---------|
 | `column_width`       | default column width; ratio of screen width when in range `(0,1]` | float | `1.0` |
 | `column_width_rules` | list of column width rules like `"class=width,class2=width2,..."` | string|       |
+| `mono_center`        | center the column if there is only one                            | bool  | false |
 | `indicator_fifo_path`| path to the FIFO file from which the indicators can be read       | string|       |
 
 ### Dispatchers
