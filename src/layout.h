@@ -44,6 +44,7 @@ public:
     virtual std::string getLayoutName() override;
     virtual CWindow *getNextWindowCandidate(CWindow *win) override;
     virtual void replaceWindowDataWith(CWindow *win_from, CWindow *win_to) override;
+    virtual Vector2D predictSizeForNewWindowTiled() override;
 
     void cmd_column_width(double w);
     void cmd_absorb_window();

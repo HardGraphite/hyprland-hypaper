@@ -1,11 +1,10 @@
 #include "column.h"
 
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/Window.hpp>
+#include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/helpers/Vector2D.hpp>
 
 #include <cassert>
-#include <cmath>
 #include <cstddef>
 #include <tuple>
 #include <utility>

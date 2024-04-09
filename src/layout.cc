@@ -5,7 +5,7 @@
 #include <string_view>
 
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/Window.hpp>
+#include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/desktop/Workspace.hpp>
 #include <hyprland/src/managers/HookSystemManager.hpp>
 
@@ -225,6 +225,12 @@ CWindow *Layout::getNextWindowCandidate(CWindow *win) {
 
 void Layout::replaceWindowDataWith(CWindow *, CWindow *) {
     hypaper_log("Layout::{}()", __func__);
+}
+
+Vector2D Layout::predictSizeForNewWindowTiled() {
+    hypaper_log("Layout::{}()", __func__);
+
+    return {0, 0};
 }
 
 static int get_active_workspace() noexcept {
