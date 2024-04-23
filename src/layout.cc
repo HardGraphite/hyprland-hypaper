@@ -53,7 +53,7 @@ void Layout::onDisable() {
 bool Layout::isWindowTiled(CWindow *win) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 
-    if (auto wb = this->get_workbench(win->m_iWorkspaceID); wb)
+    if (auto wb = this->get_workbench(win->m_pWorkspace->m_iID); wb)
         return wb ? wb->find_window(win) : false;
     return false;
 }
@@ -61,7 +61,7 @@ bool Layout::isWindowTiled(CWindow *win) {
 void Layout::onWindowCreatedTiling(CWindow *win, eDirection) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 
-    if (const auto wid = win->m_iWorkspaceID; wid >= 0) {
+    if (const auto wid = win->m_pWorkspace->m_iID; wid >= 0) {
         const auto width = this->column_width_rules(win->m_szInitialClass);
         this->get_or_new_workbench(wid).add_window(win, width);
     }
@@ -70,7 +70,16 @@ void Layout::onWindowCreatedTiling(CWindow *win, eDirection) {
 void Layout::onWindowRemovedTiling(CWindow *win) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
 
-    auto wb = this->get_workbench(win->m_iWorkspaceID);
+    if (!win->m_pWorkspace) {
+        // Starting from Hyprland 0.39, `onWindowRemovedTiling()` is called twice
+        // when a window is removed, and the member `m_pWorkspace` is nullptr
+        // the second time this function is called. Do not know why.
+        hypaper_log("Layout::{}({}) : win->m_pWorkspace == nullptr", __func__, static_cast<void *>(win));
+        assert(this->foreach_workspace([win](Workbench &wb) { return !wb.find_window(win); }));
+        return;
+    }
+
+    auto wb = this->get_workbench(win->m_pWorkspace->m_iID);
     if (!wb)
         return;
     if (auto fwr = wb->find_window(win); fwr) {
@@ -92,7 +101,7 @@ void Layout::onWindowFocusChange(CWindow *win) {
     if (!win)
         return;
 
-    if (auto wb = this->get_workbench(win->m_iWorkspaceID); wb) {
+    if (auto wb = this->get_workbench(win->m_pWorkspace->m_iID); wb) {
         auto fwr = wb->find_window(win);
         if (fwr) {
             wb->focus_column(fwr.column);
@@ -120,7 +129,7 @@ void Layout::fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool
     hypaper_log("Layout::{}({}, {}, {})", __func__, static_cast<void *>(win), int(mode), on);
 
     const auto monitor   = g_pCompositor->getMonitorFromID(win->m_iMonitorID);
-    const auto workspace = g_pCompositor->getWorkspaceByID(win->m_iWorkspaceID);
+    const auto workspace = g_pCompositor->getWorkspaceByID(win->m_pWorkspace->m_iID);
 
     if (workspace->m_bHasFullscreenWindow == on)
         return;
@@ -141,7 +150,7 @@ void Layout::fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool
             win->m_vRealSize     = win->m_vLastFloatingSize;
             win->updateSpecialRenderData();
         } else {
-            auto &wb = this->get_or_new_workbench(win->m_iWorkspaceID);
+            auto &wb = this->get_or_new_workbench(win->m_pWorkspace->m_iID);
             if (auto fwr = wb.find_window(win); fwr)
                 wb.get_column(fwr.column)._apply_window_data();
             else
@@ -212,7 +221,7 @@ std::string Layout::getLayoutName() {
 CWindow *Layout::getNextWindowCandidate(CWindow *win) {
     hypaper_log("Layout::{}()", __func__);
 
-    auto wbp = this->get_workbench(win->m_iWorkspaceID);
+    auto wbp = this->get_workbench(win->m_pWorkspace->m_iID);
     if (!wbp || wbp->is_empty())
         return nullptr;
     auto &wb = *wbp;
@@ -234,7 +243,7 @@ Vector2D Layout::predictSizeForNewWindowTiled() {
 }
 
 static int get_active_workspace() noexcept {
-    return g_pCompositor->m_pLastMonitor->activeWorkspace;
+    return g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID;
 }
 
 void Layout::cmd_column_width(double w) {

@@ -4,6 +4,7 @@
 #include <charconv>
 #include <system_error>
 
+#include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/plugins/PluginAPI.hpp>
 
 #include "column.h"
