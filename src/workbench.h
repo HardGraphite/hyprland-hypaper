@@ -34,11 +34,7 @@ public:
     window_ptr del_window(std::size_t col_index, std::size_t win_index);
     FindWinResult find_window(const window_ptr &win) const;
     void focus_column(std::size_t index);
-    void focus_column_left();
-    void focus_column_right();
     void swap_columns(std::size_t index1, std::size_t index2);
-    void move_column_left();
-    void move_column_right();
     Column &get_column(std::size_t i) const noexcept;
     Column &get_focused_column() const noexcept;
     std::size_t get_focused_column_index() const noexcept;

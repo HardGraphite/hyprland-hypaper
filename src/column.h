@@ -27,11 +27,7 @@ public:
     window_ptr get_focused_window() const;
     std::size_t get_focused_window_index() const noexcept;
     void swap_windows(std::size_t index1, std::size_t index2);
-    void move_window_up(std::size_t index);
-    void move_window_down(std::size_t index);
     void focus_window(std::size_t index);
-    void focus_window_up();
-    void focus_window_down();
     std::size_t find_window(const window_ptr &win) const;
     std::size_t count_windows() const;
     bool is_empty() const noexcept;

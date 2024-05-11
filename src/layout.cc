@@ -1,6 +1,7 @@
 #include "layout.h"
 
 #include <cassert>
+#include <cctype>
 #include <charconv>
 #include <memory>
 #include <string_view>
@@ -197,12 +198,46 @@ SWindowRenderLayoutHints Layout::requestRenderHints(PHLWINDOW) {
     return { };
 }
 
-void Layout::switchWindows(PHLWINDOW, PHLWINDOW) {
-    hypaper_log("Layout::{}()", __func__);
+void Layout::switchWindows([[maybe_unused]] PHLWINDOW win1, [[maybe_unused]] PHLWINDOW win2) {
+    hypaper_log("Layout::{}({}, {})", __func__, static_cast<void *>(win1.get()), static_cast<void *>(win2.get()));
 }
 
-void Layout::moveWindowTo(PHLWINDOW, const std::string &, bool) {
-    hypaper_log("Layout::{}()", __func__);
+void Layout::moveWindowTo(PHLWINDOW win, const std::string &dir, [[maybe_unused]] bool silent) {
+    hypaper_log("Layout::{}({}, {}, {})", __func__, static_cast<void *>(win.get()), dir, silent);
+
+    if (dir.size() != 1)
+        return;
+    const char dir_x = std::tolower(dir[0]);
+
+    auto wb = this->get_workbench(win->m_pWorkspace->m_iID);
+    if (!wb)
+        return;
+    auto fwr = wb->find_window(win);
+    if (!fwr)
+        return;
+
+    switch (dir_x) {
+    case 'l':
+        if (fwr.column > 0) {
+            wb->swap_columns(fwr.column - 1, fwr.column);
+            wb->scroll_to_fit_focus();
+        }
+        break;
+    case 'r':
+        if (fwr.column + 1 < wb->count_columns()) {
+            wb->swap_columns(fwr.column, fwr.column + 1);
+            wb->scroll_to_fit_focus();
+        }
+        break;
+    case 'u':
+        if (Column &col = wb->get_column(fwr.column); fwr.window > 0)
+            col.swap_windows(fwr.window - 1, fwr.window);
+        break;
+    case 'd':
+        if (Column &col = wb->get_column(fwr.column); fwr.window + 1 < col.count_windows())
+            col.swap_windows(fwr.window, fwr.window + 1);
+        break;
+    }
 }
 
 void Layout::alterSplitRatio(PHLWINDOW, float, bool) {

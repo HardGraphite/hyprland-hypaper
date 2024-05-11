@@ -65,14 +65,6 @@ void Workbench::focus_column(std::size_t index) {
     this->scroll_to_fit_focus();
 }
 
-void Workbench::focus_column_left() {
-    this->focus_column(this->focused_column - 1);
-}
-
-void Workbench::focus_column_right() {
-    this->focus_column(this->focused_column + 1);
-}
-
 void Workbench::swap_columns(std::size_t index1, std::size_t index2) {
     if (index1 >= index2) {
         if (index1 == index2)
@@ -84,16 +76,12 @@ void Workbench::swap_columns(std::size_t index1, std::size_t index2) {
     hypaper_log("Workbench#{}: swap columns #{} and #{}", this->workspace_id, index1, index2);
 
     const auto old_col1_x = this->columns[index1]->get_hposition();
+    if (const auto old_focus = this->focused_column; old_focus == index1)
+        this->focused_column = index2;
+    else if (old_focus == index2)
+        this->focused_column = index1;
     std::swap(this->columns[index1], this->columns[index2]);
-    this->update_column_position(old_col1_x, index1, index2 - index1);
-}
-
-void Workbench::move_column_left() {
-    this->swap_columns(this->focused_column - 1, this->focused_column);
-}
-
-void Workbench::move_column_right() {
-    this->swap_columns(this->focused_column, this->focused_column + 1);
+    this->update_column_position(old_col1_x, index1, index2 - index1 + 1);
 }
 
 void Workbench::clear() {
@@ -161,6 +149,8 @@ void Workbench::scroll_to_fit_focus(ScrollAlignment sa) {
 }
 
 void Workbench::scroll(double offset) {
+    hypaper_log("Workbench#{}: scroll offset={}", this->workspace_id, offset);
+
     if (!offset)
         return;
     for (auto &&col : this->columns)

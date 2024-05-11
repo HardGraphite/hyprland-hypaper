@@ -87,16 +87,12 @@ void Column::swap_windows(std::size_t index1, std::size_t index2) {
         return;
 
     hypaper_log("Column@{}: swap window #{} and #{}", static_cast<void *>(this), index1, index2);
+    if (const auto old_focus = this->focused_window; old_focus == index1)
+        this->focused_window = index2;
+    else if (old_focus == index2)
+        this->focused_window = index1;
     std::swap(this->window_list[index1], this->window_list[index2]);
     this->update_window_vposition_and_size();
-}
-
-void Column::move_window_up(std::size_t index) {
-    this->swap_windows(index - 1, index);
-}
-
-void Column::move_window_down(std::size_t index) {
-    this->swap_windows(index, index + 1);
 }
 
 void Column::focus_window(std::size_t index) {
@@ -104,14 +100,6 @@ void Column::focus_window(std::size_t index) {
         index = n - 1;
     hypaper_log("Column@{}: focus window #{}", static_cast<void *>(this), index);
     this->focused_window = index;
-}
-
-void Column::focus_window_up() {
-    this->focus_window(this->focused_window - 1);
-}
-
-void Column::focus_window_down() {
-    this->focus_window(this->focused_window + 1);
 }
 
 std::size_t Column::find_window(const window_ptr &win) const {
@@ -222,7 +210,7 @@ void Column::update_window_hposition() const {
     for (const auto &wp : this->window_list) {
         auto &win = *wp;
         if (win.m_bIsFullscreen)
-            return;
+            continue;
         set_window_hposition(win, win_x, win_p);
     }
 }
@@ -238,7 +226,7 @@ void Column::update_window_vposition_and_size() const {
     for (const auto &wp : this->window_list) {
         auto &win = *wp;
         if (win.m_bIsFullscreen)
-            return;
+            continue;
         set_window_vposition_and_size(win, win_y, win_width, win_height, win_p);
         win_y += win_height;
     }
