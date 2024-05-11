@@ -82,7 +82,7 @@ static void cmd_dump_layout([[maybe_unused]] std::string arg) {
                 const auto w = win->m_vSize.x, h = win->m_vSize.y;
                 hypaper_log(
                     "      <Window addr=\"{}\" index=\"{}\" xywh=\"{},{},{},{}\"/>",
-                    static_cast<void *>(win), win_i, x, y, w, h
+                    static_cast<void *>(win.get()), win_i, x, y, w, h
                 );
             }
             hypaper_log("    </Column>");

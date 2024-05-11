@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <charconv>
+#include <memory>
 #include <string_view>
 
 #include <hyprland/src/Compositor.hpp>
@@ -23,26 +24,25 @@ const std::string Layout::name = "paper"s;
 
 Layout::~Layout() = default;
 
-static std::function<void(void*, SCallbackInfo& info, std::any data)>
-hook_func_event_workspace = [](void *, SCallbackInfo &, std::any data) {
-    auto ws = std::any_cast<CWorkspace *>(data);
-    auto wb = layout->get_workbench(ws->m_iID);
-    (wb ? (*indicator << *wb) : (*indicator << Indicator::ColumnStatus::EMPTY)) << flush;
-};
-
 void Layout::onEnable() {
     hypaper_log("Layout::{}()", __func__);
 
     for (auto &wp : g_pCompositor->m_vWindows)
-        this->onWindowCreatedTiling(wp.get(), eDirection::DIRECTION_DEFAULT);
+        this->onWindowCreatedTiling(wp, eDirection::DIRECTION_DEFAULT);
 
-    g_pHookSystem->hookStatic("workspace"s, &hook_func_event_workspace);
+    this->hook_event_workspace = g_pHookSystem->hookDynamic(
+        "workspace"s, [](void *, SCallbackInfo &, std::any data) {
+            auto ws = std::any_cast<std::shared_ptr<CWorkspace>>(data);
+            auto wb = hypaper::layout->get_workbench(ws->m_iID);
+            (wb ? (*indicator << *wb) : (*indicator << Indicator::ColumnStatus::EMPTY)) << flush;
+        }, hypaper::hyprland_handle
+    );
 }
 
 void Layout::onDisable() {
     hypaper_log("Layout::{}()", __func__);
 
-    g_pHookSystem->unhook(&hook_func_event_workspace);
+    g_pHookSystem->unhook(std::move(this->hook_event_workspace));
 
     this->foreach_workspace([](Workbench &wb) -> bool {
         wb.clear();
@@ -50,32 +50,29 @@ void Layout::onDisable() {
     });
 }
 
-bool Layout::isWindowTiled(CWindow *win) {
-    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
+bool Layout::isWindowTiled(PHLWINDOW win) {
+    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win.get()));
 
     if (auto wb = this->get_workbench(win->m_pWorkspace->m_iID); wb)
         return wb ? wb->find_window(win) : false;
     return false;
 }
 
-void Layout::onWindowCreatedTiling(CWindow *win, eDirection) {
-    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
+void Layout::onWindowCreatedTiling(PHLWINDOW win, eDirection) {
+    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win.get()));
 
     if (const auto wid = win->m_pWorkspace->m_iID; wid >= 0) {
         const auto width = this->column_width_rules(win->m_szInitialClass);
-        this->get_or_new_workbench(wid).add_window(win, width);
+        this->get_or_new_workbench(wid).add_window(std::move(win), width);
     }
 }
 
-void Layout::onWindowRemovedTiling(CWindow *win) {
-    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
+void Layout::onWindowRemovedTiling(PHLWINDOW win) {
+    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win.get()));
 
     if (!win->m_pWorkspace) {
-        // Starting from Hyprland 0.39, `onWindowRemovedTiling()` is called twice
-        // when a window is removed, and the member `m_pWorkspace` is nullptr
-        // the second time this function is called. Do not know why.
-        hypaper_log("Layout::{}({}) : win->m_pWorkspace == nullptr", __func__, static_cast<void *>(win));
-        assert(this->foreach_workspace([win](Workbench &wb) { return !wb.find_window(win); }));
+        hypaper_log("Layout::{}({}) : win->m_pWorkspace == nullptr", __func__, static_cast<void *>(win.get()));
+        assert(this->foreach_workspace([&win](Workbench &wb) { return !wb.find_window(win); }));
         return;
     }
 
@@ -86,7 +83,7 @@ void Layout::onWindowRemovedTiling(CWindow *win) {
         wb->del_window(fwr.column, fwr.window);
         return;
     }
-    this->foreach_workspace([win](Workbench &wb) -> bool {
+    this->foreach_workspace([&win](Workbench &wb) -> bool {
         auto fwr = wb.find_window(win);
         if (!fwr)
             return true;
@@ -95,8 +92,8 @@ void Layout::onWindowRemovedTiling(CWindow *win) {
     });
 }
 
-void Layout::onWindowFocusChange(CWindow *win) {
-    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
+void Layout::onWindowFocusChange(PHLWINDOW win) {
+    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win.get()));
 
     if (!win)
         return;
@@ -117,16 +114,16 @@ void Layout::recalculateMonitor(const int &monitor_id) {
     g_pHyprRenderer->damageMonitor(monitor); // ??
 }
 
-void Layout::recalculateWindow([[maybe_unused]] CWindow *win) {
-    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win));
+void Layout::recalculateWindow([[maybe_unused]] PHLWINDOW win) {
+    hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win.get()));
 }
 
-void Layout::resizeActiveWindow(const Vector2D &, eRectCorner, CWindow *) {
+void Layout::resizeActiveWindow(const Vector2D &, eRectCorner, PHLWINDOW) {
     hypaper_log("Layout::{}()", __func__);
 }
 
-void Layout::fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool on) {
-    hypaper_log("Layout::{}({}, {}, {})", __func__, static_cast<void *>(win), int(mode), on);
+void Layout::fullscreenRequestForWindow(PHLWINDOW win, eFullscreenMode mode, bool on) {
+    hypaper_log("Layout::{}({}, {}, {})", __func__, static_cast<void *>(win.get()), int(mode), on);
 
     const auto monitor   = g_pCompositor->getMonitorFromID(win->m_iMonitorID);
     const auto workspace = g_pCompositor->getWorkspaceByID(win->m_pWorkspace->m_iID);
@@ -194,21 +191,21 @@ std::any Layout::layoutMessage(SLayoutMessageHeader, std::string) {
     return ""s;
 }
 
-SWindowRenderLayoutHints Layout::requestRenderHints(CWindow *) {
+SWindowRenderLayoutHints Layout::requestRenderHints(PHLWINDOW) {
     hypaper_log("Layout::{}()", __func__);
 
     return { };
 }
 
-void Layout::switchWindows(CWindow *, CWindow *) {
+void Layout::switchWindows(PHLWINDOW, PHLWINDOW) {
     hypaper_log("Layout::{}()", __func__);
 }
 
-void Layout::moveWindowTo(CWindow *, const std::string &) {
+void Layout::moveWindowTo(PHLWINDOW, const std::string &, bool) {
     hypaper_log("Layout::{}()", __func__);
 }
 
-void Layout::alterSplitRatio(CWindow *, float, bool) {
+void Layout::alterSplitRatio(PHLWINDOW, float, bool) {
     hypaper_log("Layout::{}()", __func__);
 }
 
@@ -218,7 +215,7 @@ std::string Layout::getLayoutName() {
     return Layout::name;
 }
 
-CWindow *Layout::getNextWindowCandidate(CWindow *win) {
+PHLWINDOW Layout::getNextWindowCandidate(PHLWINDOW win) {
     hypaper_log("Layout::{}()", __func__);
 
     auto wbp = this->get_workbench(win->m_pWorkspace->m_iID);
@@ -232,7 +229,7 @@ CWindow *Layout::getNextWindowCandidate(CWindow *win) {
     return nullptr;
 }
 
-void Layout::replaceWindowDataWith(CWindow *, CWindow *) {
+void Layout::replaceWindowDataWith(PHLWINDOW, PHLWINDOW) {
     hypaper_log("Layout::{}()", __func__);
 }
 
@@ -270,7 +267,7 @@ void Layout::cmd_absorb_window() {
         return;
     auto &wb = *wbp;
 
-    CWindow *win;
+    PHLWINDOW win;
     if (auto &col = wb.get_column(wb.get_focused_column_index() + 1); col.is_empty())
         return;
     else if (col.count_windows() == 1)
@@ -280,10 +277,10 @@ void Layout::cmd_absorb_window() {
     assert(!wb.is_empty());
     if (auto &col = wb.get_focused_column(); col.is_empty()) {
         col.add_window(win);
-        g_pCompositor->focusWindow(win);
+        g_pCompositor->focusWindow(std::move(win));
     } else {
         const auto old_fw = col.get_focused_window_index();
-        col.add_window(win);
+        col.add_window(std::move(win));
         col.focus_window(old_fw);
     }
 }

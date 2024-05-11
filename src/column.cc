@@ -18,87 +18,60 @@ static CMonitor &get_window_monitor(CWindow *win) {
     return *g_pCompositor->getMonitorFromID(win->m_iMonitorID);
 }
 
-Column::Column(double h_pos, CWindow *win, double width):
+Column::Column(double h_pos, window_ptr win, double width):
     width(0.0), h_position(h_pos),
-    focused_window(NPOS),
-    has_window_list(false), window(nullptr)
+    focused_window(NPOS)
 {
     hypaper_log("Column@{}: created, x = {}", static_cast<void *>(this), h_pos);
 
     this->set_width(width > 0.0 ? width : conf::column_width());
     if (win)
-        this->add_window(win);
+        this->add_window(std::move(win));
 }
 
 Column::~Column() {
     hypaper_log("Column@{}: deleted", static_cast<void *>(this));
-
-    if (this->has_window_list)
-        this->window_list.~vector();
 }
 
-void Column::add_window(CWindow *win) {
-    hypaper_log("Column@{}: add window {}", static_cast<void *>(this), static_cast<void *>(win));
+void Column::add_window(window_ptr win) {
+    hypaper_log("Column@{}: add window {}", static_cast<void *>(this), static_cast<void *>(win.get()));
 
-    if (this->has_window_list) {
-        if (this->window_list.empty()) {
-            this->focused_window = 0;
-            this->window_list.emplace_back(win);
-        } else {
-            this->focused_window++;
-            const auto insert_iter = this->window_list.begin() + this->focused_window;
-            this->window_list.emplace(insert_iter, win);
-        }
-    } else if (!this->window) {
-        this->window = win;
+    if (this->window_list.empty()) {
         this->focused_window = 0;
+        this->window_list.emplace_back(std::move(win));
     } else {
-        auto old_win = this->window;
-        this->has_window_list = true;
-        new (&this->window_list) decltype(this->window_list){old_win, win};
-        this->focused_window = 1;
+        this->focused_window++;
+        const auto insert_iter = this->window_list.begin() + this->focused_window;
+        this->window_list.emplace(insert_iter, std::move(win));
     }
+
     this->update_window_hposition();
     this->update_window_vposition_and_size();
 }
 
-CWindow *Column::del_window(std::size_t index) {
-    CWindow *deleted_win;
+Column::window_ptr Column::del_window(std::size_t index) {
+    window_ptr deleted_win;
 
-    if (this->has_window_list) {
-        if (index >= this->window_list.size())
-            return nullptr;
-        const auto win_iter = this->window_list.begin() + index;
-        deleted_win = *win_iter;
-        this->window_list.erase(win_iter);
-        this->focused_window = this->window_list.empty() ? NPOS : index ? index - 1 : 0;
-        if (!this->window_list.empty())
-            this->update_window_vposition_and_size();
-    } else {
-        if (index != 0)
-            return nullptr;
-        deleted_win = this->window;
-        this->window = nullptr;
-        this->focused_window = Column::NPOS;
-    }
+    if (index >= this->window_list.size())
+        return nullptr;
+    const auto win_iter = this->window_list.begin() + index;
+    deleted_win = std::move(*win_iter);
+    this->window_list.erase(win_iter);
+    this->focused_window = this->window_list.empty() ? NPOS : index ? index - 1 : 0;
+    if (!this->window_list.empty())
+        this->update_window_vposition_and_size();
 
-    hypaper_log("Column@{}: del window #{}({})", static_cast<void *>(this), index, static_cast<void *>(deleted_win));
+    hypaper_log("Column@{}: del window #{}({})", static_cast<void *>(this), index, static_cast<void *>(deleted_win.get()));
     return deleted_win;
 }
 
-CWindow *Column::get_window(std::size_t index) const {
-    if (this->has_window_list) {
-        if (index >= this->window_list.size())
-            return nullptr;
-        return this->window_list[index];
-    } else {
-        if (index != 0)
-            return nullptr;
-        return this->window;
-    }
+Column::window_ptr Column::get_window(std::size_t index) const {
+    if (index >= this->window_list.size())
+        return nullptr;
+    return this->window_list[index];
 }
 
-CWindow *Column::get_focused_window() const {
+Column::window_ptr Column::get_focused_window() const {
     return this->get_window(this->focused_window);
 }
 
@@ -110,7 +83,7 @@ void Column::swap_windows(std::size_t index1, std::size_t index2) {
         index2 = index1, index1 = old_index2;
     }
 
-    if (!this->has_window_list || index2 >= this->window_list.size())
+    if (index2 >= this->window_list.size())
         return;
 
     hypaper_log("Column@{}: swap window #{} and #{}", static_cast<void *>(this), index1, index2);
@@ -127,8 +100,6 @@ void Column::move_window_down(std::size_t index) {
 }
 
 void Column::focus_window(std::size_t index) {
-    if (!this->has_window_list)
-        return;
     if (const auto n = this->window_list.size(); index >= n)
         index = n - 1;
     hypaper_log("Column@{}: focus window #{}", static_cast<void *>(this), index);
@@ -143,29 +114,20 @@ void Column::focus_window_down() {
     this->focus_window(this->focused_window + 1);
 }
 
-std::size_t Column::find_window(CWindow *win) const {
-    if (this->has_window_list) {
-        if (this->window_list.empty())
-            return Column::NPOS;
-        if (this->window_list[this->focused_window] == win)
-            return this->focused_window;
-        for (std::size_t i = 0, n = this->window_list.size(); i < n; i++) {
-            if (this->window_list[i] == win)
-                return i;
-        }
-    } else {
-        if (this->window == win)
-            return 0;
+std::size_t Column::find_window(const window_ptr &win) const {
+    if (this->window_list.empty())
+        return Column::NPOS;
+    if (this->window_list[this->focused_window] == win)
+        return this->focused_window;
+    for (std::size_t i = 0, n = this->window_list.size(); i < n; i++) {
+        if (this->window_list[i] == win)
+            return i;
     }
     return Column::NPOS;
 }
 
 std::size_t Column::count_windows() const {
-    if (this->has_window_list) {
-        return this->window_list.size();
-    } else {
-        return this->window ? 1 : 0;
-    }
+    return this->window_list.size();
 }
 
 void Column::set_width(double w) {
@@ -187,7 +149,7 @@ double Column::get_actual_width(double monitor_width) const noexcept {
         return this->width;
 
     if (monitor_width <= -0.0)
-        monitor_width = get_window_monitor(this->get_window(0)).vecSize.x;
+        monitor_width = get_window_monitor(this->get_window(0).get()).vecSize.x;
     return monitor_width * this->width;
 }
 
@@ -255,19 +217,10 @@ void Column::update_window_hposition() const {
     const auto win_x = this->h_position;
     Vector2D win_p(conf::gaps_in(), conf::gaps_in());
 
-    if (this->has_window_list) {
-        if (this->window_list.empty())
-            return;
-        for (const auto &wp : this->window_list) {
-            auto &win = *wp;
-            if (win.m_bIsFullscreen)
-                return;
-            set_window_hposition(win, win_x, win_p);
-        }
-    } else {
-        if (!this->window)
-            return;
-        auto &win = *this->window;
+    if (this->window_list.empty())
+        return;
+    for (const auto &wp : this->window_list) {
+        auto &win = *wp;
         if (win.m_bIsFullscreen)
             return;
         set_window_hposition(win, win_x, win_p);
@@ -276,30 +229,17 @@ void Column::update_window_hposition() const {
 
 void Column::update_window_vposition_and_size() const {
     Vector2D win_p(conf::gaps_in(), conf::gaps_in());
-
-    if (this->has_window_list) {
-        if (this->window_list.empty())
-            return;
-        const auto &mon = get_window_monitor(this->window_list.front());
-        const auto win_width = calc_window_width(mon, this->width);
-        auto [win_y, win_height] =
-                calc_window0_vposition_and_height(mon, this->window_list.size());
-        for (const auto &wp : this->window_list) {
-            auto &win = *wp;
-            if (win.m_bIsFullscreen)
-                return;
-            set_window_vposition_and_size(win, win_y, win_width, win_height, win_p);
-            win_y += win_height;
-        }
-    } else {
-        if (!this->window)
-            return;
-        auto &win = *this->window;
+    if (this->window_list.empty())
+        return;
+    const auto &mon = get_window_monitor(this->window_list.front().get());
+    const auto win_width = calc_window_width(mon, this->width);
+    auto [win_y, win_height] =
+            calc_window0_vposition_and_height(mon, this->window_list.size());
+    for (const auto &wp : this->window_list) {
+        auto &win = *wp;
         if (win.m_bIsFullscreen)
             return;
-        const auto &mon = get_window_monitor(&win);
-        const auto win_width = calc_window_width(mon, this->width);
-        const auto [win_y, win_height] = calc_window0_vposition_and_height(mon, 1);
         set_window_vposition_and_size(win, win_y, win_width, win_height, win_p);
+        win_y += win_height;
     }
 }

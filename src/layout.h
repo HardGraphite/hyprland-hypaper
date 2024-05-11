@@ -16,6 +16,9 @@ class Workbench;
 /// The paper layout.
 class Layout final : public IHyprLayout {
 public:
+    using hook_func = std::function<void(void*, SCallbackInfo& info, std::any data)>;
+    using hook_func_handle = std::shared_ptr<hook_func>;
+
     struct ScrollArg {
         enum { AUTO, CENTER, ALIGN_L, ALIGN_R, OFFSET } type;
         double value = 0.0;
@@ -28,22 +31,22 @@ public:
     virtual void onEnable() override;
     virtual void onDisable() override;
 
-    virtual bool isWindowTiled(CWindow *win) override;
-    virtual void onWindowCreatedTiling(CWindow *win, eDirection) override;
-    virtual void onWindowRemovedTiling(CWindow *win) override;
-    virtual void onWindowFocusChange(CWindow *win) override;
+    virtual bool isWindowTiled(PHLWINDOW win) override;
+    virtual void onWindowCreatedTiling(PHLWINDOW win, eDirection) override;
+    virtual void onWindowRemovedTiling(PHLWINDOW win) override;
+    virtual void onWindowFocusChange(PHLWINDOW win) override;
     virtual void recalculateMonitor(const int &monitor_id) override;
-    virtual void recalculateWindow(CWindow *win) override;
-    virtual void resizeActiveWindow(const Vector2D &delta, eRectCorner corner, CWindow *win = nullptr) override;
-    virtual void fullscreenRequestForWindow(CWindow *win, eFullscreenMode mode, bool on) override;
+    virtual void recalculateWindow(PHLWINDOW win) override;
+    virtual void resizeActiveWindow(const Vector2D &delta, eRectCorner corner, PHLWINDOW win = nullptr) override;
+    virtual void fullscreenRequestForWindow(PHLWINDOW win, eFullscreenMode mode, bool on) override;
     virtual std::any layoutMessage(SLayoutMessageHeader header, std::string content) override;
-    virtual SWindowRenderLayoutHints requestRenderHints(CWindow *win) override;
-    virtual void switchWindows(CWindow *win1, CWindow *win2) override;
-    virtual void moveWindowTo(CWindow *win, const std::string &direction) override;
-    virtual void alterSplitRatio(CWindow *win, float ratio, bool exact) override;
+    virtual SWindowRenderLayoutHints requestRenderHints(PHLWINDOW win) override;
+    virtual void switchWindows(PHLWINDOW win1, PHLWINDOW win2) override;
+    virtual void moveWindowTo(PHLWINDOW win, const std::string &direction, bool silent = false) override;
+    virtual void alterSplitRatio(PHLWINDOW win, float ratio, bool exact) override;
     virtual std::string getLayoutName() override;
-    virtual CWindow *getNextWindowCandidate(CWindow *win) override;
-    virtual void replaceWindowDataWith(CWindow *win_from, CWindow *win_to) override;
+    virtual PHLWINDOW getNextWindowCandidate(PHLWINDOW win) override;
+    virtual void replaceWindowDataWith(PHLWINDOW win_from, PHLWINDOW win_to) override;
     virtual Vector2D predictSizeForNewWindowTiled() override;
 
     void cmd_column_width(double w);
@@ -70,6 +73,7 @@ private:
     std::array<std::unique_ptr<Workbench>, 10> workspaces;
     std::vector<std::unique_ptr<Workbench>> extra_workspaces;
     ColumnWidthRules column_width_rules;
+    hook_func_handle hook_event_workspace;
 
     Workbench &get_or_new_workbench(int workspace_id);
 };

@@ -15,6 +15,8 @@ class Indicator;
 /// The container of columns.
 class Workbench final {
 public:
+    using window_ptr = std::shared_ptr<CWindow>;
+
     struct FindWinResult {
         std::size_t column, window;
         operator bool() const noexcept { return column != NPOS && window != NPOS; }
@@ -28,9 +30,9 @@ public:
 
     explicit Workbench(int workspace_id);
 
-    void add_window(CWindow *win, double width = 0.0);
-    CWindow *del_window(std::size_t col_index, std::size_t win_index);
-    FindWinResult find_window(CWindow *win) const;
+    void add_window(window_ptr win, double width = 0.0);
+    window_ptr del_window(std::size_t col_index, std::size_t win_index);
+    FindWinResult find_window(const window_ptr &win) const;
     void focus_column(std::size_t index);
     void focus_column_left();
     void focus_column_right();

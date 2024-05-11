@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 class CMonitor;
@@ -11,17 +12,19 @@ namespace hypaper {
 /// A column of windows.
 class Column final {
 public:
+    using window_ptr = std::shared_ptr<CWindow>;
+
     static constexpr std::size_t NPOS = std::size_t(-1);
 
-    explicit Column(double h_pos, CWindow *win = nullptr, double width = 0.0);
+    explicit Column(double h_pos, window_ptr win = nullptr, double width = 0.0);
     Column(const Column &) = delete;
     Column(Column &&) = delete;
     ~Column();
 
-    void add_window(CWindow *win);
-    CWindow *del_window(std::size_t index);
-    CWindow *get_window(std::size_t index) const;
-    CWindow *get_focused_window() const;
+    void add_window(window_ptr win);
+    window_ptr del_window(std::size_t index);
+    window_ptr get_window(std::size_t index) const;
+    window_ptr get_focused_window() const;
     std::size_t get_focused_window_index() const noexcept;
     void swap_windows(std::size_t index1, std::size_t index2);
     void move_window_up(std::size_t index);
@@ -29,7 +32,7 @@ public:
     void focus_window(std::size_t index);
     void focus_window_up();
     void focus_window_down();
-    std::size_t find_window(CWindow *win) const;
+    std::size_t find_window(const window_ptr &win) const;
     std::size_t count_windows() const;
     bool is_empty() const noexcept;
     void set_width(double w);
@@ -43,19 +46,14 @@ private:
     double width;
     double h_position;
     std::size_t focused_window;
-    bool has_window_list;
-    union {
-        CWindow *window;
-        std::vector<CWindow *> window_list;
-    };
+    std::vector<window_ptr> window_list;
 
     void update_window_hposition() const;
     void update_window_vposition_and_size() const;
 };
 
 inline bool Column::is_empty() const noexcept {
-    return this->has_window_list ?
-        this->window_list.empty() : !this->window;
+    return this->window_list.empty();
 }
 
 inline std::size_t Column::get_focused_window_index() const noexcept {

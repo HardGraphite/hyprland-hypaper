@@ -16,8 +16,8 @@ Workbench::Workbench(int ws) : focused_column(NPOS), workspace_id(ws) {
     hypaper_log("Workbench#{}: created", this->workspace_id);
 }
 
-void Workbench::add_window(CWindow *win, double width) {
-    hypaper_log("Workbench#{}: add window {}", this->workspace_id, static_cast<void *>(win));
+void Workbench::add_window(window_ptr win, double width) {
+    hypaper_log("Workbench#{}: add window {}", this->workspace_id, static_cast<void *>(win.get()));
 
     const std::size_t new_col_index = this->focused_column + 1;
     double new_col_x;
@@ -34,15 +34,15 @@ void Workbench::add_window(CWindow *win, double width) {
     this->scroll_to_fit_focus();
 }
 
-CWindow *Workbench::del_window(std::size_t col_index, std::size_t win_index) {
+Workbench::window_ptr Workbench::del_window(std::size_t col_index, std::size_t win_index) {
     hypaper_log("Workbench#{}: del window #{}:{}", this->workspace_id, col_index, win_index);
 
     if (col_index >= this->columns.size())
         return nullptr;
     auto &column = *this->columns[col_index].get();
-    CWindow *win = column.del_window(win_index);
+    window_ptr win = column.del_window(win_index);
     if (!win)
-        return nullptr;
+        return win; // nullptr
     if (!column.is_empty())
         return win;
     this->columns.erase(this->columns.begin() + col_index);
@@ -103,7 +103,7 @@ void Workbench::clear() {
     this->focused_column = Workbench::NPOS;
 }
 
-Workbench::FindWinResult Workbench::find_window(CWindow *win) const {
+Workbench::FindWinResult Workbench::find_window(const window_ptr &win) const {
     if (this->is_empty())
         return { Workbench::NPOS, Column::NPOS };
     if (auto wi = this->get_focused_column().find_window(win); wi != Column::NPOS)
