@@ -35,7 +35,7 @@ void Layout::onEnable() {
         "workspace"s, [](void *, SCallbackInfo &, std::any data) {
             auto ws = std::any_cast<std::shared_ptr<CWorkspace>>(data);
             auto wb = hypaper::layout->get_workbench(ws->m_iID);
-            (wb ? (*indicator << *wb) : (*indicator << Indicator::ColumnStatus::EMPTY)) << flush;
+            (wb ? (*indicator << *wb) : (*indicator << Indicator::ColumnStatus{0, 0})) << flush;
         }, hypaper::hyprland_handle
     );
 }

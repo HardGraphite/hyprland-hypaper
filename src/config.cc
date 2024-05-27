@@ -14,6 +14,7 @@ using namespace hypaper;
 static Hyprlang::CConfigValue *column_width;
 static Hyprlang::CConfigValue *column_width_rules;
 static Hyprlang::CConfigValue *mono_center;
+static Hyprlang::CConfigValue *indicator;
 static Hyprlang::CConfigValue *indicator_fifo_path;
 static Hyprlang::CConfigValue *general_gaps_in;
 static Hyprlang::CConfigValue *general_gaps_out;
@@ -32,6 +33,7 @@ void conf::_register() {
     ::column_width = add_conf_var("plugin:hypaper:column_width"s, 1.0f);
     ::column_width_rules = add_conf_var("plugin:hypaper:column_width_rules"s, "");
     ::mono_center = add_conf_var("plugin:hypaper:mono_center"s, Hyprlang::INT(0));
+    ::indicator = add_conf_var("plugin:hypaper:indicator"s, Hyprlang::INT(0));
     ::indicator_fifo_path = add_conf_var("plugin:hypaper:indicator_fifo_path"s, "");
     ::general_gaps_in = get_conf_var("general:gaps_in"s);
     ::general_gaps_out = get_conf_var("general:gaps_out"s);
@@ -50,6 +52,11 @@ const char *conf::column_width_rules() noexcept {
 bool conf::mono_center() noexcept {
     const auto x = *static_cast<Hyprlang::INT *>(::mono_center->dataPtr());
     return x;
+}
+
+unsigned int conf::indicator() noexcept {
+    const auto x = *static_cast<Hyprlang::INT *>(::indicator->dataPtr());
+    return x > 0 ? static_cast<unsigned int>(x) : 0;
 }
 
 const char *conf::indicator_fifo_path() noexcept {

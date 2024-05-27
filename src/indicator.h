@@ -1,15 +1,17 @@
 #pragma once
 
+#include <cstddef>
+
 namespace hypaper {
 
 class Indicator {
 public:
-    enum struct ColumnStatus {
-        EMPTY  = 0,
-        SINGLE = 1,
-        FIRST  = 2,
-        MIDDLE = 3,
-        LAST   = 4,
+    struct ColumnStatus {
+        std::size_t total, focus;
+
+        bool operator==(const ColumnStatus &other) const noexcept {
+            return this->focus == other.focus && this->total == other.total;
+        }
     };
 
     Indicator();
@@ -17,6 +19,7 @@ public:
     Indicator(Indicator &&) = delete;
     ~Indicator();
 
+    Indicator &operator<<(const class Workbench &wb) noexcept;
     Indicator &operator<<(ColumnStatus x) noexcept;
     void flush();
 
@@ -25,6 +28,7 @@ public:
     }
 
 private:
+    unsigned int type;
     int fifo_fd;
     bool modified;
     ColumnStatus column_status;

@@ -190,18 +190,3 @@ void Workbench::update_column_position(double column_x, std::size_t index_start,
         column_x += column.get_actual_width();
     }
 }
-
-Indicator &hypaper::operator<<(Indicator &indicator, const Workbench &wb) {
-    Indicator::ColumnStatus column_status;
-    if (wb.is_empty())
-        column_status = Indicator::ColumnStatus::EMPTY;
-    else if (const auto n = wb.columns.size(); n == 1)
-        column_status = Indicator::ColumnStatus::SINGLE;
-    else if (wb.focused_column == 0)
-        column_status = Indicator::ColumnStatus::FIRST;
-    else if (wb.focused_column + 1 == n)
-        column_status = Indicator::ColumnStatus::LAST;
-    else
-        column_status = Indicator::ColumnStatus::MIDDLE;
-    return indicator << column_status;
-}
