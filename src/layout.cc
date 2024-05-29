@@ -62,10 +62,9 @@ bool Layout::isWindowTiled(PHLWINDOW win) {
 void Layout::onWindowCreatedTiling(PHLWINDOW win, eDirection) {
     hypaper_log("Layout::{}({})", __func__, static_cast<void *>(win.get()));
 
-    if (const auto wid = win->m_pWorkspace->m_iID; wid >= 0) {
-        const auto width = this->column_width_rules(win->m_szInitialClass);
-        this->get_or_new_workbench(wid).add_window(std::move(win), width);
-    }
+    const auto workspace_id = win->m_pWorkspace->m_iID;
+    const auto width = this->column_width_rules(win->m_szInitialClass);
+    this->get_or_new_workbench(workspace_id).add_window(std::move(win), width);
 }
 
 void Layout::onWindowRemovedTiling(PHLWINDOW win) {
