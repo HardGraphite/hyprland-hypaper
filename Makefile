@@ -7,6 +7,9 @@ LDFLAGS  += -shared -fno-gnu-unique
 INCLUDES  = $(shell pkg-config --cflags-only-I hyprland pixman-1 libdrm)
 CXXFLAGS += -DWLR_USE_UNSTABLE
 
+# `pkg-config` some how fails to provide the correct path to wlr headers.
+INCLUDES += -I/usr/include/hyprland/wlroots-hyprland
+
 ifdef DEBUG
 CXXFLAGS += -Og -g
 else

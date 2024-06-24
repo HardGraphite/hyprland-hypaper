@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hyprland/src/helpers/memory/Memory.hpp>
+
 #include <cassert>
 #include <cstddef>
 #include <memory>
@@ -14,7 +16,7 @@ class Column;
 /// The container of columns.
 class Workbench final {
 public:
-    using window_ptr = std::shared_ptr<CWindow>;
+    using window_ptr = SP<CWindow>;
 
     struct FindWinResult {
         std::size_t column, window;

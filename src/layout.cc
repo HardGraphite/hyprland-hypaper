@@ -33,7 +33,7 @@ void Layout::onEnable() {
 
     this->hook_event_workspace = g_pHookSystem->hookDynamic(
         "workspace"s, [](void *, SCallbackInfo &, std::any data) {
-            auto ws = std::any_cast<std::shared_ptr<CWorkspace>>(data);
+            auto ws = std::any_cast<SP<CWorkspace>>(data);
             auto wb = hypaper::layout->get_workbench(ws->m_iID);
             (wb ? (*indicator << *wb) : (*indicator << Indicator::ColumnStatus{0, 0})) << flush;
         }, hypaper::hyprland_handle
@@ -44,6 +44,7 @@ void Layout::onDisable() {
     hypaper_log("Layout::{}()", __func__);
 
     g_pHookSystem->unhook(std::move(this->hook_event_workspace));
+    this->hook_event_workspace = nullptr;
 
     this->foreach_workspace([](Workbench &wb) -> bool {
         wb.clear();
@@ -109,9 +110,6 @@ void Layout::onWindowFocusChange(PHLWINDOW win) {
 
 void Layout::recalculateMonitor(const int &monitor_id) {
     hypaper_log("Layout::{}({})", __func__, monitor_id);
-
-    const auto monitor = g_pCompositor->getMonitorFromID(monitor_id);
-    g_pHyprRenderer->damageMonitor(monitor); // ??
 }
 
 void Layout::recalculateWindow([[maybe_unused]] PHLWINDOW win) {

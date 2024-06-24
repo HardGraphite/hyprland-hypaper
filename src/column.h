@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hyprland/src/helpers/memory/Memory.hpp>
+
 #include <cstddef>
 #include <memory>
 #include <vector>
@@ -12,7 +14,7 @@ namespace hypaper {
 /// A column of windows.
 class Column final {
 public:
-    using window_ptr = std::shared_ptr<CWindow>;
+    using window_ptr = SP<CWindow>;
 
     static constexpr std::size_t NPOS = std::size_t(-1);
 

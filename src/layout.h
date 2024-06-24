@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyprland/src/layout/IHyprLayout.hpp>
+#include <hyprland/src/managers/HookSystemManager.hpp>
 
 #include <array>
 #include <memory>
@@ -16,8 +17,8 @@ class Workbench;
 /// The paper layout.
 class Layout final : public IHyprLayout {
 public:
-    using hook_func = std::function<void(void*, SCallbackInfo& info, std::any data)>;
-    using hook_func_handle = std::shared_ptr<hook_func>;
+    using hook_func = HOOK_CALLBACK_FN;
+    using hook_func_handle = SP<HOOK_CALLBACK_FN>;
 
     struct ScrollArg {
         enum { AUTO, CENTER, ALIGN_L, ALIGN_R, OFFSET } type;
